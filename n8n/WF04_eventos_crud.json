@@ -1,0 +1,1845 @@
+{
+  "name": "WF04 - Administración CRUD de eventos",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Administración de eventos - EventPass Comic Con",
+        "formDescription": "Crear, consultar, actualizar, cerrar o cancelar eventos de EventPass.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Acción",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "CREATE"
+                  },
+                  {
+                    "option": "READ"
+                  },
+                  {
+                    "option": "UPDATE"
+                  },
+                  {
+                    "option": "CANCEL"
+                  },
+                  {
+                    "option": "CLOSE"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "evento_id"
+            },
+            {
+              "fieldLabel": "nombre"
+            },
+            {
+              "fieldLabel": "categoria",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "COMICS"
+                  },
+                  {
+                    "option": "COSPLAY"
+                  },
+                  {
+                    "option": "ANIME"
+                  },
+                  {
+                    "option": "GAMING"
+                  },
+                  {
+                    "option": "CIENCIA_FICCION"
+                  },
+                  {
+                    "option": "TALLERES"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "descripcion",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "fecha",
+              "fieldType": "date"
+            },
+            {
+              "fieldLabel": "hora"
+            },
+            {
+              "fieldLabel": "lugar"
+            },
+            {
+              "fieldLabel": "capacidad",
+              "fieldType": "number"
+            },
+            {
+              "fieldLabel": "imagen_url"
+            },
+            {
+              "fieldLabel": "organizador"
+            },
+            {
+              "fieldLabel": "estado",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "BORRADOR"
+                  },
+                  {
+                    "option": "PUBLICADO"
+                  },
+                  {
+                    "option": "CERRADO"
+                  },
+                  {
+                    "option": "CANCELADO"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        -592
+      ],
+      "id": "2ff4aed1-5905-4d6e-a635-5f1a9daa6a92",
+      "name": "Administrar Evento",
+      "webhookId": "52b86c4a-ac74-4322-87df-24b07d577527"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json;\n\n// n8n usa como propiedad el Label del formulario.\n// Admitimos tanto \"Acción\" como \"accion\" por seguridad.\nconst action = String(\n  input['Acción'] ??\n  input.accion ??\n  ''\n)\n  .trim()\n  .toUpperCase();\n\nconst evento_id = input.evento_id\n  ? String(input.evento_id).trim()\n  : null;\n\nconst nombre = input.nombre\n  ? String(input.nombre).trim()\n  : null;\n\nlet categoria = input.categoria\n  ? String(input.categoria).trim().toUpperCase()\n  : null;\n\n// Normalizar, por ejemplo:\n// \"CIENCIA FICCION\" → \"CIENCIA_FICCION\"\nif (categoria) {\n  categoria = categoria\n    .replace(/\\s+/g, '_')\n    .replace(/-+/g, '_');\n}\n\nconst descripcion = input.descripcion\n  ? String(input.descripcion).trim()\n  : null;\n\nconst fecha = input.fecha\n  ? String(input.fecha).trim()\n  : null;\n\nconst hora = input.hora\n  ? String(input.hora).trim()\n  : null;\n\nconst lugar = input.lugar\n  ? String(input.lugar).trim()\n  : null;\n\nconst capacidad =\n  input.capacidad !== undefined &&\n  input.capacidad !== null &&\n  input.capacidad !== ''\n    ? Number(input.capacidad)\n    : null;\n\nconst imagen_url = input.imagen_url\n  ? String(input.imagen_url).trim()\n  : null;\n\nconst organizador = input.organizador\n  ? String(input.organizador).trim()\n  : null;\n\nconst estado = input.estado\n  ? String(input.estado).trim().toUpperCase()\n  : null;\n\nconst accionesPermitidas = [\n  'CREATE',\n  'READ',\n  'UPDATE',\n  'CANCEL',\n  'CLOSE',\n];\n\nconst categoriasPermitidas = [\n  'COMICS',\n  'COSPLAY',\n  'ANIME',\n  'GAMING',\n  'CIENCIA_FICCION',\n  'TALLERES',\n];\n\nconst estadosPermitidos = [\n  'BORRADOR',\n  'PUBLICADO',\n  'CERRADO',\n  'CANCELADO',\n];\n\nlet error = null;\n\n// Acción\nif (!accionesPermitidas.includes(action)) {\n  error = 'Acción no válida';\n}\n\n// CREATE\nif (!error && action === 'CREATE') {\n  if (!nombre) {\n    error = 'El nombre es obligatorio';\n  } else if (!categoria) {\n    error = 'La categoría es obligatoria';\n  } else if (!categoriasPermitidas.includes(categoria)) {\n    error = 'Categoría no válida';\n  } else if (!descripcion) {\n    error = 'La descripción es obligatoria';\n  } else if (!fecha) {\n    error = 'La fecha es obligatoria';\n  } else if (!hora) {\n    error = 'La hora es obligatoria';\n  } else if (!lugar) {\n    error = 'El lugar es obligatorio';\n  } else if (!Number.isInteger(capacidad) || capacidad <= 0) {\n    error = 'La capacidad debe ser un entero mayor que 0';\n  } else if (!organizador) {\n    error = 'El organizador es obligatorio';\n  } else if (estado && !estadosPermitidos.includes(estado)) {\n    error = 'Estado no válido';\n  }\n}\n\n// Acciones que requieren evento_id\nif (\n  !error &&\n  ['READ', 'UPDATE', 'CANCEL', 'CLOSE'].includes(action)\n) {\n  if (!evento_id) {\n    error = 'evento_id es obligatorio';\n  }\n}\n\n// UPDATE\nif (!error && action === 'UPDATE') {\n  const hayCambios =\n    nombre !== null ||\n    categoria !== null ||\n    descripcion !== null ||\n    fecha !== null ||\n    hora !== null ||\n    lugar !== null ||\n    capacidad !== null ||\n    imagen_url !== null ||\n    organizador !== null ||\n    estado !== null;\n\n  if (!hayCambios) {\n    error = 'Debe enviarse al menos un dato para actualizar';\n  }\n\n  if (\n    !error &&\n    categoria &&\n    !categoriasPermitidas.includes(categoria)\n  ) {\n    error = 'Categoría no válida';\n  }\n\n  if (\n    !error &&\n    estado &&\n    !estadosPermitidos.includes(estado)\n  ) {\n    error = 'Estado no válido';\n  }\n}\n\nreturn [\n  {\n    json: {\n      route: error ? 'INVALID' : action,\n      action,\n      evento_id,\n      nombre,\n      categoria,\n      descripcion,\n      fecha,\n      hora,\n      lugar,\n      capacidad,\n      imagen_url,\n      organizador,\n      estado,\n      error,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        -592
+      ],
+      "id": "e8cd7630-56c8-4ca4-9b9f-5a833bec2c62",
+      "name": "Normalizar y validar evento"
+    },
+    {
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 6,
+        "output": "={{ ({\n  CREATE: 0,\n  READ: 1,\n  UPDATE: 2,\n  CANCEL: 3,\n  CLOSE: 4,\n  INVALID: 5\n})[$json.route] ?? 5 }}"
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        -656
+      ],
+      "id": "e07d90fd-0e02-474c-9111-8050dd1eec36",
+      "name": "Switch - Acción Evento"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst entrada = $json;\nconst ahora = new Date().toISOString();\n\nreturn [{\n  json: {\n    evento_id: `evt_${crypto.randomUUID()}`,\n    nombre: entrada.nombre,\n    categoria: entrada.categoria,\n    descripcion: entrada.descripcion,\n    fecha: entrada.fecha,\n    hora: entrada.hora,\n    lugar: entrada.lugar,\n    capacidad: entrada.capacidad,\n    imagen_url: entrada.imagen_url ?? '',\n    organizador: entrada.organizador,\n    estado: entrada.estado || 'BORRADOR',\n    fecha_creacion: ahora,\n    fecha_actualizacion: ahora\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -1264
+      ],
+      "id": "45325835-1d2b-451e-b479-ceeca974f741",
+      "name": "Generar evento"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "evento_id": "={{ $json.evento_id }}",
+            "nombre": "={{ $json.nombre }}",
+            "categoria": "={{ $json.categoria }}",
+            "descripcion": "={{ $json.descripcion }}",
+            "fecha": "={{ $json.fecha }}",
+            "hora": "={{ $json.hora }}",
+            "lugar": "={{ $json.lugar }}",
+            "capacidad": "={{ $json.capacidad }}",
+            "imagen_url": "={{ $json.imagen_url }}",
+            "organizador": "={{ $json.organizador }}",
+            "estado": "={{ $json.estado }}",
+            "fecha_creacion": "={{ $json.fecha_creacion }}",
+            "fecha_actualizacion": "={{ $json.fecha_actualizacion }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "descripcion",
+              "displayName": "descripcion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hora",
+              "displayName": "hora",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lugar",
+              "displayName": "lugar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "capacidad",
+              "displayName": "capacidad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "imagen_url",
+              "displayName": "imagen_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "organizador",
+              "displayName": "organizador",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha_creacion",
+              "displayName": "fecha_creacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha_actualizacion",
+              "displayName": "fecha_actualizacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        -1264
+      ],
+      "id": "927e5b77-cbc1-42d7-ac57-3b1192eddb0f",
+      "name": "Registrar evento",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst evento = $('Generar evento').first().json;\n\nreturn [{\n  json: {\n    auditoria_id: `aud_evt_${crypto.randomUUID()}`,\n    evento_id: evento.evento_id,\n    accion: 'CREATE',\n    fecha: new Date().toISOString(),\n    resultado: 'OK',\n    detalle: `Evento \"${evento.nombre}\" creado con estado ${evento.estado}`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -1264
+      ],
+      "id": "e2e18212-2679-4913-b6ed-4afe3aaa36f5",
+      "name": "Preparar auditoría CREATE"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2014992532,
+          "mode": "list",
+          "cachedResultName": "Auditoria_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=2014992532"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "auditoria_id": "={{ $json.auditoria_id }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "accion": "={{ $json.accion }}",
+            "fecha": "={{ $json.fecha }}",
+            "resultado": "={{ $json.resultado }}",
+            "detalle": "={{ $json.detalle }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "auditoria_id",
+              "displayName": "auditoria_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "accion",
+              "displayName": "accion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resultado",
+              "displayName": "resultado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "detalle",
+              "displayName": "detalle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        -1264
+      ],
+      "id": "a4beecf9-4e73-4cc0-a716-c65a15e66199",
+      "name": "Registrar auditoría CREATE",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "evento_id",
+              "lookupValue": "={{ $('Normalizar y validar evento').first().json.evento_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        -976
+      ],
+      "id": "94f17394-cba0-482c-b273-e15c6b2b06dc",
+      "name": "Buscar evento por ID",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6eb4d585-9aa6-4dd3-8775-95c54ceac3b2",
+              "leftValue": "={{ !!$json.evento_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        -976
+      ],
+      "id": "486b6f8d-c41a-456b-9771-27430ffa8983",
+      "name": "¿Evento existe?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst evento = $('Buscar evento por ID').first().json;\n\nreturn [{\n  json: {\n    auditoria_id: `aud_evt_${crypto.randomUUID()}`,\n    evento_id: evento.evento_id,\n    accion: 'READ',\n    fecha: new Date().toISOString(),\n    resultado: 'OK',\n    detalle: `Consulta del evento \"${evento.nombre}\"`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -1072
+      ],
+      "id": "128a2a3e-f84b-456d-a873-c61387063ae1",
+      "name": "Preparar auditoría READ"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2014992532,
+          "mode": "list",
+          "cachedResultName": "Auditoria_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=2014992532"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "auditoria_id": "={{ $json.auditoria_id }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "accion": "={{ $json.accion }}",
+            "fecha": "={{ $json.fecha }}",
+            "resultado": "={{ $json.resultado }}",
+            "detalle": "={{ $json.detalle }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "auditoria_id",
+              "displayName": "auditoria_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "accion",
+              "displayName": "accion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resultado",
+              "displayName": "resultado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "detalle",
+              "displayName": "detalle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        -1072
+      ],
+      "id": "9830f54e-273a-47ae-bfc1-762247a66e0c",
+      "name": "Registrar auditoría READ",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const evento = $('Buscar evento por ID').first().json;\n\nreturn [{\n  json: {\n    ok: true,\n    message: 'Evento encontrado',\n    evento: {\n      evento_id: evento.evento_id,\n      nombre: evento.nombre,\n      categoria: evento.categoria,\n      descripcion: evento.descripcion,\n      fecha: evento.fecha,\n      hora: evento.hora,\n      lugar: evento.lugar,\n      capacidad: evento.capacidad,\n      imagen_url: evento.imagen_url,\n      organizador: evento.organizador,\n      estado: evento.estado,\n      fecha_creacion: evento.fecha_creacion,\n      fecha_actualizacion: evento.fecha_actualizacion\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        -1072
+      ],
+      "id": "02cb10ab-c3da-4472-a739-dad374e5e19e",
+      "name": "Resultado READ"
+    },
+    {
+      "parameters": {
+        "jsCode": "const entrada = $('Normalizar y validar evento').first().json;\n\nreturn [{\n  json: {\n    ok: false,\n    error: 'Evento no encontrado',\n    evento_id: entrada.evento_id\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -880
+      ],
+      "id": "b874b5bb-6ea4-4c8e-9bd3-9ed89bb13bc4",
+      "name": "Resultado - Evento no encontrado"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "evento_id",
+              "lookupValue": "={{ $('Normalizar y validar evento').first().json.evento_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        -592
+      ],
+      "id": "e9a4b7b9-861c-45d6-a8d8-c73cffc6e0db",
+      "name": "Buscar evento para actualizar",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1c579a15-e374-406f-8363-272a8411ac69",
+              "leftValue": "={{ !!$json.evento_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        -592
+      ],
+      "id": "d735cde6-3488-4dc1-860f-091a0b27fd6c",
+      "name": "¿Evento para actualizar existe?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const entrada = $('Normalizar y validar evento').first().json;\n\nreturn [{\n  json: {\n    ok: false,\n    error: 'Evento no encontrado',\n    evento_id: entrada.evento_id\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -496
+      ],
+      "id": "77b4c38f-658c-42b9-9549-6d77e69b6dc1",
+      "name": "Resultado - Evento UPDATE no encontrado"
+    },
+    {
+      "parameters": {
+        "jsCode": "const actual = $('Buscar evento para actualizar').first().json;\nconst entrada = $('Normalizar y validar evento').first().json;\n\nconst ahora = new Date().toISOString();\n\nreturn [{\n  json: {\n    evento_id: actual.evento_id,\n\n    nombre:\n      entrada.nombre !== null\n        ? entrada.nombre\n        : actual.nombre,\n\n    categoria:\n      entrada.categoria !== null\n        ? entrada.categoria\n        : actual.categoria,\n\n    descripcion:\n      entrada.descripcion !== null\n        ? entrada.descripcion\n        : actual.descripcion,\n\n    fecha:\n      entrada.fecha !== null\n        ? entrada.fecha\n        : actual.fecha,\n\n    hora:\n      entrada.hora !== null\n        ? entrada.hora\n        : actual.hora,\n\n    lugar:\n      entrada.lugar !== null\n        ? entrada.lugar\n        : actual.lugar,\n\n    capacidad:\n      entrada.capacidad !== null\n        ? entrada.capacidad\n        : actual.capacidad,\n\n    imagen_url:\n      entrada.imagen_url !== null\n        ? entrada.imagen_url\n        : actual.imagen_url,\n\n    organizador:\n      entrada.organizador !== null\n        ? entrada.organizador\n        : actual.organizador,\n\n    estado:\n      entrada.estado !== null\n        ? entrada.estado\n        : actual.estado,\n\n    fecha_creacion: actual.fecha_creacion,\n    fecha_actualizacion: ahora\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -688
+      ],
+      "id": "e32e2c39-c62e-4a05-a8ff-51f5b5b33ae3",
+      "name": "Preparar actualización evento"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "evento_id": "={{ $json.evento_id }}",
+            "nombre": "={{ $json.nombre }}",
+            "categoria": "={{ $json.categoria }}",
+            "descripcion": "={{ $json.descripcion }}",
+            "fecha": "={{ $json.fecha }}",
+            "hora": "={{ $json.hora }}",
+            "lugar": "={{ $json.lugar }}",
+            "capacidad": "={{ $json.capacidad }}",
+            "imagen_url": "={{ $json.imagen_url }}",
+            "organizador": "={{ $json.organizador }}",
+            "estado": "={{ $json.estado }}",
+            "fecha_creacion": "={{ $json.fecha_creacion }}",
+            "fecha_actualizacion": "={{ $json.fecha_actualizacion }}"
+          },
+          "matchingColumns": [
+            "evento_id"
+          ],
+          "schema": [
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "descripcion",
+              "displayName": "descripcion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hora",
+              "displayName": "hora",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lugar",
+              "displayName": "lugar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "capacidad",
+              "displayName": "capacidad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "imagen_url",
+              "displayName": "imagen_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "organizador",
+              "displayName": "organizador",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha_creacion",
+              "displayName": "fecha_creacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha_actualizacion",
+              "displayName": "fecha_actualizacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        -688
+      ],
+      "id": "3ef5b422-3e3e-442d-910e-76698cb81cde",
+      "name": "Actualizar evento",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst evento = $('Preparar actualización evento').first().json;\n\nreturn [{\n  json: {\n    auditoria_id: `aud_evt_${crypto.randomUUID()}`,\n    evento_id: evento.evento_id,\n    accion: 'UPDATE',\n    fecha: new Date().toISOString(),\n    resultado: 'OK',\n    detalle: `Evento \"${evento.nombre}\" actualizado correctamente`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        -688
+      ],
+      "id": "d4e9dec5-84ed-4afd-8d1b-316db2b3ca33",
+      "name": "Preparar auditoría UPDATE"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2014992532,
+          "mode": "list",
+          "cachedResultName": "Auditoria_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=2014992532"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "auditoria_id": "={{ $json.auditoria_id }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "accion": "={{ $json.accion }}",
+            "fecha": "={{ $json.fecha }}",
+            "resultado": "={{ $json.resultado }}",
+            "detalle": "={{ $json.detalle }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "auditoria_id",
+              "displayName": "auditoria_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "accion",
+              "displayName": "accion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resultado",
+              "displayName": "resultado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "detalle",
+              "displayName": "detalle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1792,
+        -688
+      ],
+      "id": "a033fd70-5eef-454f-9eca-31bfb0002827",
+      "name": "Registrar auditoría UPDATE",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const evento = $('Preparar actualización evento').first().json;\n\nreturn [{\n  json: {\n    ok: true,\n    message: 'Evento actualizado correctamente',\n    evento\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        -688
+      ],
+      "id": "393eaed1-7504-4d53-8e7d-bb608c1005ae",
+      "name": "Resultado UPDATE"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "evento_id",
+              "lookupValue": "={{ $('Normalizar y validar evento').first().json.evento_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        -208
+      ],
+      "id": "63025c87-9bc9-4998-8a7f-8aaf35e382c5",
+      "name": "Buscar evento para cambiar estado",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "14222f93-f657-4c34-9718-17b3fe36164e",
+              "leftValue": "={{ !!$json.evento_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        -208
+      ],
+      "id": "daf2603f-fe9e-4053-8cef-c888cbdb3de8",
+      "name": "¿Evento para cambiar estado existe?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const entrada = $('Normalizar y validar evento').first().json;\n\nreturn [{\n  json: {\n    ok: false,\n    error: 'Evento no encontrado',\n    evento_id: entrada.evento_id\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -112
+      ],
+      "id": "f839ed76-c9df-4d31-95ea-3b209fcc82d7",
+      "name": "Resultado - Evento estado no encontrado"
+    },
+    {
+      "parameters": {
+        "jsCode": "const evento = $('Buscar evento para cambiar estado').first().json;\nconst entrada = $('Normalizar y validar evento').first().json;\n\nconst nuevoEstado =\n  entrada.action === 'CANCEL'\n    ? 'CANCELADO'\n    : 'CERRADO';\n\nreturn [{\n  json: {\n    evento_id: evento.evento_id,\n    nombre: evento.nombre,\n    categoria: evento.categoria,\n    descripcion: evento.descripcion,\n    fecha: evento.fecha,\n    hora: evento.hora,\n    lugar: evento.lugar,\n    capacidad: evento.capacidad,\n    imagen_url: evento.imagen_url,\n    organizador: evento.organizador,\n    estado_anterior: evento.estado,\n    estado: nuevoEstado,\n    accion: entrada.action,\n    fecha_creacion: evento.fecha_creacion,\n    fecha_actualizacion: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -304
+      ],
+      "id": "c0f88ab0-4dbe-45b1-8188-e5896dd9e209",
+      "name": "Preparar cambio de estado"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "evento_id": "={{ $json.evento_id }}",
+            "nombre": "={{ $json.nombre }}",
+            "categoria": "={{ $json.categoria }}",
+            "descripcion": "={{ $json.descripcion }}",
+            "fecha": "={{ $json.fecha }}",
+            "hora": "={{ $json.hora }}",
+            "lugar": "={{ $json.lugar }}",
+            "capacidad": "={{ $json.capacidad }}",
+            "imagen_url": "={{ $json.imagen_url }}",
+            "organizador": "={{ $json.organizador }}",
+            "estado": "={{ $json.estado }}",
+            "fecha_creacion": "={{ $json.fecha_creacion }}",
+            "fecha_actualizacion": "={{ $json.fecha_actualizacion }}"
+          },
+          "matchingColumns": [
+            "evento_id"
+          ],
+          "schema": [
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "descripcion",
+              "displayName": "descripcion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hora",
+              "displayName": "hora",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lugar",
+              "displayName": "lugar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "capacidad",
+              "displayName": "capacidad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "imagen_url",
+              "displayName": "imagen_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "organizador",
+              "displayName": "organizador",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha_creacion",
+              "displayName": "fecha_creacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha_actualizacion",
+              "displayName": "fecha_actualizacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        -304
+      ],
+      "id": "e7d7cf9e-4dca-4cb8-adb5-2a64c930f908",
+      "name": "Actualizar estado evento",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst evento = $('Preparar cambio de estado').first().json;\n\nreturn [{\n  json: {\n    auditoria_id: `aud_evt_${crypto.randomUUID()}`,\n    evento_id: evento.evento_id,\n    accion: evento.accion,\n    fecha: new Date().toISOString(),\n    resultado: 'OK',\n    detalle: `Evento \"${evento.nombre}\" cambió de ${evento.estado_anterior} a ${evento.estado}`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        -304
+      ],
+      "id": "ffa5285b-087b-4391-9b71-1e45af499659",
+      "name": "Preparar auditoría ESTADO"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2014992532,
+          "mode": "list",
+          "cachedResultName": "Auditoria_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=2014992532"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "auditoria_id": "={{ $json.auditoria_id }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "accion": "={{ $json.accion }}",
+            "fecha": "={{ $json.fecha }}",
+            "resultado": "={{ $json.resultado }}",
+            "detalle": "={{ $json.detalle }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "auditoria_id",
+              "displayName": "auditoria_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "accion",
+              "displayName": "accion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resultado",
+              "displayName": "resultado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "detalle",
+              "displayName": "detalle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1792,
+        -304
+      ],
+      "id": "bc7f4f96-d427-4734-ad57-7c107da3c516",
+      "name": "Registrar auditoría ESTADO",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const evento = $('Preparar cambio de estado').first().json;\n\nreturn [{\n  json: {\n    ok: true,\n    message:\n      evento.estado === 'CANCELADO'\n        ? 'Evento cancelado correctamente'\n        : 'Evento cerrado correctamente',\n    evento: {\n      evento_id: evento.evento_id,\n      nombre: evento.nombre,\n      estado_anterior: evento.estado_anterior,\n      estado: evento.estado,\n      fecha_actualizacion: evento.fecha_actualizacion\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        -304
+      ],
+      "id": "a3ed5195-e299-428d-819c-335b859fa2d8",
+      "name": "Resultado cambio de estado"
+    },
+    {
+      "parameters": {
+        "jsCode": "const entrada = $('Normalizar y validar evento').first().json;\n\nreturn [{\n  json: {\n    ok: false,\n    error: entrada.error || 'Solicitud inválida',\n    action: entrada.action || null,\n    evento_id: entrada.evento_id || null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -16
+      ],
+      "id": "e4844080-8b7c-4ba0-8bc6-05a8f22a6470",
+      "name": "Resultado - Entrada inválida"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Administrar Evento": {
+      "main": [
+        [
+          {
+            "node": "Normalizar y validar evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar y validar evento": {
+      "main": [
+        [
+          {
+            "node": "Switch - Acción Evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Acción Evento": {
+      "main": [
+        [
+          {
+            "node": "Generar evento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar evento por ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar evento para actualizar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar evento para cambiar estado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar evento para cambiar estado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado - Entrada inválida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar evento": {
+      "main": [
+        [
+          {
+            "node": "Registrar evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar evento": {
+      "main": [
+        [
+          {
+            "node": "Preparar auditoría CREATE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar auditoría CREATE": {
+      "main": [
+        [
+          {
+            "node": "Registrar auditoría CREATE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar evento por ID": {
+      "main": [
+        [
+          {
+            "node": "¿Evento existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Evento existe?": {
+      "main": [
+        [
+          {
+            "node": "Preparar auditoría READ",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado - Evento no encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar auditoría READ": {
+      "main": [
+        [
+          {
+            "node": "Registrar auditoría READ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar auditoría READ": {
+      "main": [
+        [
+          {
+            "node": "Resultado READ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar evento para actualizar": {
+      "main": [
+        [
+          {
+            "node": "¿Evento para actualizar existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Evento para actualizar existe?": {
+      "main": [
+        [
+          {
+            "node": "Preparar actualización evento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado - Evento UPDATE no encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar actualización evento": {
+      "main": [
+        [
+          {
+            "node": "Actualizar evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar evento": {
+      "main": [
+        [
+          {
+            "node": "Preparar auditoría UPDATE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar auditoría UPDATE": {
+      "main": [
+        [
+          {
+            "node": "Registrar auditoría UPDATE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar auditoría UPDATE": {
+      "main": [
+        [
+          {
+            "node": "Resultado UPDATE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar evento para cambiar estado": {
+      "main": [
+        [
+          {
+            "node": "¿Evento para cambiar estado existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Evento para cambiar estado existe?": {
+      "main": [
+        [
+          {
+            "node": "Preparar cambio de estado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado - Evento estado no encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar cambio de estado": {
+      "main": [
+        [
+          {
+            "node": "Actualizar estado evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar estado evento": {
+      "main": [
+        [
+          {
+            "node": "Preparar auditoría ESTADO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar auditoría ESTADO": {
+      "main": [
+        [
+          {
+            "node": "Registrar auditoría ESTADO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar auditoría ESTADO": {
+      "main": [
+        [
+          {
+            "node": "Resultado cambio de estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c1962e96-4b71-401c-b9ab-15e00786b9f3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e18f7f45af7b762d17bca0cb617e7a822a32b40f721449038e7b3ba0ac7130a4"
+  },
+  "nodeGroups": [],
+  "id": "iYNOSXU6v85GlIPS",
+  "tags": []
+}
