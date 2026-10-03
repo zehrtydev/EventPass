@@ -1,0 +1,2119 @@
+{
+  "name": "WF03 - Vinculación WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eventpass/vinculacion/codigo",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        0
+      ],
+      "id": "1d687cb9-fe2e-4162-9f25-6ec1f520a95e",
+      "name": "Solicitar código de vinculación",
+      "webhookId": "34c1a357-6934-49bd-87a4-f42323f0bd31"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? {};\nconst headers = $json.headers ?? {};\n\nlet session_token = body.session_token\n  ? String(body.session_token).trim()\n  : null;\n\nconst authorization =\n  headers.authorization ??\n  headers.Authorization ??\n  '';\n\nif (!session_token && typeof authorization === 'string') {\n  const match = authorization.match(/^Bearer\\s+(.+)$/i);\n\n  if (match) {\n    session_token = match[1].trim();\n  }\n}\n\nreturn [{\n  json: {\n    session_token,\n    error: session_token\n      ? null\n      : 'El token de sesión es obligatorio'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "214aa832-45e6-4d88-b9cc-6bff8f0b20d7",
+      "name": "Extraer token de sesión"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1rZAkhuoyuQfh2YxJrvRHvEcd2eX7S3HnMcaQMVvAWYk",
+          "mode": "list",
+          "cachedResultName": "EP02_Sesiones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rZAkhuoyuQfh2YxJrvRHvEcd2eX7S3HnMcaQMVvAWYk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sesiones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rZAkhuoyuQfh2YxJrvRHvEcd2eX7S3HnMcaQMVvAWYk/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "session_token",
+              "lookupValue": "={{ $('Extraer token de sesión').first().json.session_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        432,
+        0
+      ],
+      "id": "c4329ae6-5ec7-4190-85f3-3a865ebe6c53",
+      "name": "Buscar sesión",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "328bef44-8943-4892-beb2-f7527b6a6186",
+              "leftValue": "={{ \n  !!$json.session_id &&\n  String($json.estado).trim().toUpperCase() === 'ACTIVA' &&\n  new Date($json.expira_en).getTime() > Date.now()\n}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        656,
+        0
+      ],
+      "id": "a2017740-ecf8-44de-a29d-043e0969aaba",
+      "name": "¿Sesión válida para vincular?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"ok\": false,\n  \"error\": \"Sesión inválida o expirada\"\n}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        880,
+        96
+      ],
+      "id": "503cf1ea-69a6-4226-a1fb-7d301661ba1a",
+      "name": "Respuesta - Sesión inválida"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1IFoOuTwutzA2crs2oVn6BkLRnobY19aG7R-eY06oHZY",
+          "mode": "list",
+          "cachedResultName": "EP01_Usuarios",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1IFoOuTwutzA2crs2oVn6BkLRnobY19aG7R-eY06oHZY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Usuarios",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1IFoOuTwutzA2crs2oVn6BkLRnobY19aG7R-eY06oHZY/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "usuario_id",
+              "lookupValue": "={{ $('Buscar sesión').first().json.usuario_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        880,
+        -96
+      ],
+      "id": "c514cfb4-5960-4394-bb07-ba72413ee8d1",
+      "name": "Buscar usuario de sesión",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "066e1e0a-c8b3-4501-8521-041a279212d7",
+              "leftValue": "={{    !!$json.usuario_id &&   String($json.estado ?? '').trim().toUpperCase() === 'ACTIVO' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1104,
+        -96
+      ],
+      "id": "5a1f83fa-6de2-4307-bdad-0f811788c0bc",
+      "name": "¿Usuario activo para vincular?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"ok\": false,\n  \"error\": \"La cuenta se encuentra inactiva\"\n}",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1328,
+        0
+      ],
+      "id": "5344e959-2525-4602-8cbf-6b5771ea9c02",
+      "name": "Respuesta - Usuario inactivo"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst usuario = $('Buscar usuario de sesión').first().json;\n\nconst alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';\n\nlet codigo = '';\n\nfor (let i = 0; i < 6; i++) {\n  codigo += alphabet[\n    crypto.randomInt(0, alphabet.length)\n  ];\n}\n\nconst ahora = new Date();\nconst expira = new Date(\n  ahora.getTime() + (10 * 60 * 1000)\n);\n\nreturn [{\n  json: {\n    codigo_id: `cod_${crypto.randomUUID()}`,\n    usuario_id: usuario.usuario_id,\n    codigo,\n    creado_en: ahora.toISOString(),\n    expira_en: expira.toISOString(),\n    estado: 'PENDIENTE',\n    usado_en: ''\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        -192
+      ],
+      "id": "f3147d01-2f67-40a3-8535-e0e85a8a5061",
+      "name": "Generar código de vinculación"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os",
+          "mode": "list",
+          "cachedResultName": "EP03_Telegram",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Codigos_Vinculacion",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "codigo_id": "={{ $json.codigo_id }}",
+            "usuario_id": "={{ $json.usuario_id }}",
+            "codigo": "={{ $json.codigo }}",
+            "creado_en": "={{ $json.creado_en }}",
+            "expira_en": "={{ $json.expira_en }}",
+            "estado": "={{ $json.estado }}",
+            "usado_en": "={{ $json.usado_en }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "codigo_id",
+              "displayName": "codigo_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "codigo",
+              "displayName": "codigo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "creado_en",
+              "displayName": "creado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "expira_en",
+              "displayName": "expira_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "usado_en",
+              "displayName": "usado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1552,
+        -192
+      ],
+      "id": "06ba7859-1196-42c6-b660-6207d4d349ba",
+      "name": "Registrar código",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    ok: true,\n    message: \"Código de vinculación generado\",\n    codigo: $('Generar código de vinculación').first().json.codigo,\n    expira_en: $('Generar código de vinculación').first().json.expira_en,\n    instrucciones:\n      \"Envía por WhatsApp o Telegram: /vincular \" +\n      $('Generar código de vinculación').first().json.codigo\n  }\n}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1776,
+        -192
+      ],
+      "id": "2d6b585f-0414-44df-be39-55218fe1b419",
+      "name": "Respuesta - Código generado"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eventpass/whatsapp/vincular",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        544
+      ],
+      "id": "681a57e9-a2b1-4872-a998-a0b9fbea3ff9",
+      "name": "Recibir vinculación WhatsApp",
+      "webhookId": "9aeba7b0-4676-4076-94ba-dbc6c1844429"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\n\nconst event = String(body.event ?? '')\n  .trim()\n  .toLowerCase();\n\nconst data = body.data ?? {};\nconst key = data.key ?? {};\n\nconst chat_id = String(key.remoteJid ?? '').trim();\nconst fromMe = key.fromMe === true;\n\nconst whatsapp_nombre = String(\n  data.pushName ?? ''\n).trim();\n\nconst message = data.message ?? {};\n\nconst texto = String(\n  message.conversation ??\n  message.extendedTextMessage?.text ??\n  message.imageMessage?.caption ??\n  message.videoMessage?.caption ??\n  ''\n).trim();\n\nconst match = texto.match(\n  /^\\/vincular\\s+([A-Z0-9]{6})$/i\n);\n\nconst codigo = match\n  ? match[1].toUpperCase()\n  : null;\n\nconst es_grupo =\n  chat_id.endsWith('@g.us');\n\nconst es_vinculacion =\n  event === 'messages.upsert' &&\n  !fromMe &&\n  !es_grupo &&\n  !!chat_id &&\n  !!codigo;\n\nreturn [{\n  json: {\n    event,\n    chat_id: chat_id || null,\n    whatsapp_nombre: whatsapp_nombre || null,\n    texto,\n    codigo,\n    fromMe,\n    es_grupo,\n    es_vinculacion\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        544
+      ],
+      "id": "d192cb7c-717f-411e-98b5-8441eef15330",
+      "name": "Extraer comando WhatsApp"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "36474a34-816b-4114-9738-058ae01ffd72",
+              "leftValue": "={{ $json.es_vinculacion }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        432,
+        544
+      ],
+      "id": "1e1a9bd5-77e7-4e05-92b0-99d2f28b99de",
+      "name": "¿Es comando de vinculación?"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os",
+          "mode": "list",
+          "cachedResultName": "EP03_Telegram",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Codigos_Vinculacion",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "codigo",
+              "lookupValue": "={{ $('Extraer comando WhatsApp').first().json.codigo }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        656,
+        544
+      ],
+      "id": "ec77b6d4-4b81-4c06-9c46-80995d0ca860",
+      "name": "Buscar código recibido",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "01bc1bd8-9b4a-4e4d-a224-8181e4d9b1a4",
+              "leftValue": "={{ !!$json.codigo_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        880,
+        544
+      ],
+      "id": "eb768d68-f4fc-4258-ae9d-5dc53067deb6",
+      "name": "¿Código existe?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b8fd1903-ed27-412f-88a0-8743e812fb4f",
+              "leftValue": "={{ String($json.estado ?? '').trim().toUpperCase() === 'PENDIENTE' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1104,
+        464
+      ],
+      "id": "0cb5e2a1-80d4-4f0a-a1ed-533c06c93f70",
+      "name": "¿Código pendiente?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "022b950a-14d0-409d-b809-c4a9f560211c",
+              "leftValue": "={{ new Date($json.expira_en).getTime() > Date.now() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1328,
+        368
+      ],
+      "id": "a0a4ccd6-141f-4b37-8ed5-26158a70521e",
+      "name": "¿Código vigente?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst codigo = $('Buscar código recibido').first().json;\nconst mensaje = $('Extraer comando WhatsApp').first().json;\n\nconst ahora = new Date().toISOString();\n\nreturn [{\n  json: {\n    vinculacion_id: `vin_${crypto.randomUUID()}`,\n    usuario_id: codigo.usuario_id,\n    chat_id: mensaje.chat_id,\n    telegram_username: mensaje.whatsapp_nombre ?? '',\n    fecha_vinculacion: ahora,\n    estado: 'ACTIVA',\n    canal: 'WHATSAPP'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        320
+      ],
+      "id": "638c1a7c-aaae-4849-ab38-d97fe2f3095d",
+      "name": "Preparar vinculación WhatsApp"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os",
+          "mode": "list",
+          "cachedResultName": "EP03_Telegram",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 831824347,
+          "mode": "list",
+          "cachedResultName": "Vinculaciones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit#gid=831824347"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "vinculacion_id": "={{ $json.vinculacion_id }}",
+            "usuario_id": "={{ $json.usuario_id }}",
+            "chat_id": "={{ $json.chat_id }}",
+            "telegram_username": "={{ $json.telegram_username }}",
+            "fecha_vinculacion": "={{ $json.fecha_vinculacion }}",
+            "estado": "={{ $json.estado }}",
+            "canal": "={{ $json.canal }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "vinculacion_id",
+              "displayName": "vinculacion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "telegram_username",
+              "displayName": "telegram_username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha_vinculacion",
+              "displayName": "fecha_vinculacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "canal",
+              "displayName": "canal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1776,
+        320
+      ],
+      "id": "9411c1e2-d652-4f8d-9d94-bdc0876be121",
+      "name": "Registrar vinculación WhatsApp",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const codigo = $('Buscar código recibido').first().json;\n\nreturn [{\n  json: {\n    codigo_id: codigo.codigo_id,\n    usuario_id: codigo.usuario_id,\n    codigo: codigo.codigo,\n    creado_en: codigo.creado_en,\n    expira_en: codigo.expira_en,\n    estado: 'USADO',\n    usado_en: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        320
+      ],
+      "id": "e92e0bd2-f252-4549-af5f-568683278ba9",
+      "name": "Preparar código usado"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os",
+          "mode": "list",
+          "cachedResultName": "EP03_Telegram",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Codigos_Vinculacion",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "usuario_id": "={{ $json.usuario_id }}",
+            "codigo_id": "={{ $json.codigo_id }}",
+            "codigo": "={{ $json.codigo }}",
+            "creado_en": "={{ $json.creado_en }}",
+            "expira_en": "={{ $json.expira_en }}",
+            "estado": "={{ $json.estado }}",
+            "usado_en": "={{ $json.usado_en }}"
+          },
+          "matchingColumns": [
+            "codigo_id"
+          ],
+          "schema": [
+            {
+              "id": "codigo_id",
+              "displayName": "codigo_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "codigo",
+              "displayName": "codigo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "creado_en",
+              "displayName": "creado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "expira_en",
+              "displayName": "expira_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "usado_en",
+              "displayName": "usado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2224,
+        320
+      ],
+      "id": "60c35526-8f99-40f3-8e32-e0b34eaa3f78",
+      "name": "Marcar código como usado",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const vinculacion = $('Preparar vinculación WhatsApp').first().json;\nconst codigo = $('Preparar código usado').first().json;\n\nreturn [{\n  json: {\n    ok: true,\n    message: 'WhatsApp vinculado correctamente',\n    usuario_id: vinculacion.usuario_id,\n    chat_id: vinculacion.chat_id,\n    vinculacion_id: vinculacion.vinculacion_id,\n    codigo_estado: codigo.estado\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2448,
+        320
+      ],
+      "id": "6c59d6ca-ff8c-41f1-a301-b27431bdffd5",
+      "name": "Resultado vinculación WhatsApp"
+    },
+    {
+      "parameters": {
+        "jsCode": "const codigo = $('Buscar código recibido').first().json;\n\nreturn [{\n  json: {\n    codigo_id: codigo.codigo_id,\n    usuario_id: codigo.usuario_id,\n    codigo: codigo.codigo,\n    creado_en: codigo.creado_en,\n    expira_en: codigo.expira_en,\n    estado: 'EXPIRADO',\n    usado_en: ''\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        512
+      ],
+      "id": "b3b0df81-2117-41f2-a76a-07faf7cb200d",
+      "name": "Preparar código expirado"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os",
+          "mode": "list",
+          "cachedResultName": "EP03_Telegram",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Codigos_Vinculacion",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "codigo_id": "={{ $json.codigo_id }}",
+            "usuario_id": "={{ $json.usuario_id }}",
+            "codigo": "={{ $json.codigo }}",
+            "creado_en": "={{ $json.creado_en }}",
+            "expira_en": "={{ $json.expira_en }}",
+            "estado": "={{ $json.estado }}",
+            "usado_en": "={{ $json.usado_en }}"
+          },
+          "matchingColumns": [
+            "codigo_id"
+          ],
+          "schema": [
+            {
+              "id": "codigo_id",
+              "displayName": "codigo_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "codigo",
+              "displayName": "codigo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "creado_en",
+              "displayName": "creado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "expira_en",
+              "displayName": "expira_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "usado_en",
+              "displayName": "usado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2224,
+        512
+      ],
+      "id": "d3fd25b7-af41-45f6-8585-454f053841f0",
+      "name": "Marcar código expirado",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const mensaje = $('Extraer comando WhatsApp').first().json;\n\nreturn [{\n  json: {\n    ok: false,\n    chat_id: mensaje.chat_id,\n    message: 'El código de vinculación ha expirado. Solicita uno nuevo.'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2448,
+        512
+      ],
+      "id": "93a1ec0f-e6bd-49b1-8d67-5a06936cc0cd",
+      "name": "Resultado - Código expirado"
+    },
+    {
+      "parameters": {
+        "jsCode": "const mensaje = $('Extraer comando WhatsApp').first().json;\n\nreturn [{\n  json: {\n    ok: false,\n    chat_id: mensaje.chat_id,\n    message: 'El código de vinculación no existe.'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2224,
+        848
+      ],
+      "id": "a46d5dab-e66e-44ed-bca6-9c8cc6dbef1b",
+      "name": "Resultado - Código inexistente"
+    },
+    {
+      "parameters": {
+        "jsCode": "const codigo = $('Buscar código recibido').first().json;\nconst mensaje = $('Extraer comando WhatsApp').first().json;\n\nlet message = 'El código ya no está disponible.';\n\nif (String(codigo.estado).toUpperCase() === 'USADO') {\n  message = 'Este código de vinculación ya fue utilizado.';\n}\n\nif (String(codigo.estado).toUpperCase() === 'EXPIRADO') {\n  message = 'Este código de vinculación está expirado.';\n}\n\nif (String(codigo.estado).toUpperCase() === 'CANCELADO') {\n  message = 'Este código de vinculación fue cancelado.';\n}\n\nreturn [{\n  json: {\n    ok: false,\n    chat_id: mensaje.chat_id,\n    message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2448,
+        704
+      ],
+      "id": "c4b916b6-2eb2-42af-b2d6-db3d5b060113",
+      "name": "Resultado - Código no disponible"
+    },
+    {
+      "parameters": {
+        "jsCode": "const entrada = $json;\n\nconst chatId = String(entrada.chat_id ?? '').trim();\n\nconst numero = chatId\n  .replace('@s.whatsapp.net', '')\n  .replace(/\\D/g, '');\n\nreturn [{\n  json: {\n    numero,\n    mensaje: entrada.message ?? 'Operación procesada por EventPass.'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        704
+      ],
+      "id": "454c373b-53d9-42d4-a0e8-0355e64d7524",
+      "name": "Preparar respuesta WhatsApp"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution.zehrty.dev/message/sendText/eventpass",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    number: $json.numero,\n    text: $json.mensaje\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2896,
+        704
+      ],
+      "id": "0508bf76-b77d-446d-bfbd-24f8b5a2266a",
+      "name": "Enviar respuesta WhatsApp",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "HTrRdgcLYt9D2XLR",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        1104,
+        1168
+      ],
+      "id": "ab4df423-9d8b-4c19-94b0-6de078f5af70",
+      "name": "Recibir vinculación Telegram",
+      "webhookId": "61f564b7-258e-45a1-bc4a-9d14eef1d761",
+      "credentials": {
+        "telegramApi": {
+          "id": "bJ8TsYp3lSCwLjsl",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = $json.message ?? {};\n\nconst texto = String(message.text ?? '').trim();\n\nconst chat_id = message.chat?.id\n  ? String(message.chat.id)\n  : null;\n\nconst telegram_username = String(\n  message.from?.username ?? ''\n).trim();\n\nconst match = texto.match(\n  /^\\/vincular(?:@\\w+)?\\s+([A-Z0-9]{6})$/i\n);\n\nconst codigo = match\n  ? match[1].toUpperCase()\n  : null;\n\nreturn [{\n  json: {\n    chat_id,\n    telegram_username,\n    texto,\n    codigo,\n    es_vinculacion: !!chat_id && !!codigo\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        1168
+      ],
+      "id": "ff18ab09-6b11-4b29-9369-e977b3fe2252",
+      "name": "Extraer comando Telegram"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c775197d-60ce-42da-8bb3-05b132f33ed8",
+              "leftValue": "={{ $json.es_vinculacion }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1552,
+        1168
+      ],
+      "id": "b7483016-9f2b-485b-a79a-23114fee2a4b",
+      "name": "¿Es comando Telegram válido?"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os",
+          "mode": "list",
+          "cachedResultName": "EP03_Telegram",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Codigos_Vinculacion",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "codigo",
+              "lookupValue": "={{ $('Extraer comando Telegram').first().json.codigo }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1776,
+        1168
+      ],
+      "id": "76427ec2-8182-4be1-95a3-bd1ffeab1910",
+      "name": "Buscar código Telegram",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bdb4e338-a615-4bd3-8bcd-ae8fd59a6e16",
+              "leftValue": "={{ !!$json.codigo_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2000,
+        1168
+      ],
+      "id": "495bebe0-e9cb-49e7-9107-bbcadd17eb67",
+      "name": "¿Código Telegram existe?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fe945c9b-6723-49d0-b45a-94a40697d915",
+              "leftValue": "={{ String($json.estado ?? '').trim().toUpperCase() === 'PENDIENTE' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2224,
+        1216
+      ],
+      "id": "34dff888-14bd-4749-b0de-2a00bcd5143d",
+      "name": "¿Código Telegram pendiente?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9daadded-a8e1-471d-9408-bb6d3bd7cae7",
+              "leftValue": "={{ new Date($json.expira_en).getTime() > Date.now() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2448,
+        1120
+      ],
+      "id": "07ab5244-0657-4a02-9f98-0f595754a345",
+      "name": "¿Código Telegram vigente?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst codigo = $('Buscar código Telegram').first().json;\nconst telegram = $('Extraer comando Telegram').first().json;\n\nconst ahora = new Date().toISOString();\n\nreturn [{\n  json: {\n    vinculacion_id: `vin_${crypto.randomUUID()}`,\n    usuario_id: codigo.usuario_id,\n    chat_id: telegram.chat_id,\n    telegram_username: telegram.telegram_username ?? '',\n    fecha_vinculacion: ahora,\n    estado: 'ACTIVA',\n    canal: 'TELEGRAM'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        1168
+      ],
+      "id": "d3a633ab-0f11-4380-ae73-15cf25036b17",
+      "name": "Preparar vinculación Telegram"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os",
+          "mode": "list",
+          "cachedResultName": "EP03_Telegram",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 831824347,
+          "mode": "list",
+          "cachedResultName": "Vinculaciones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit#gid=831824347"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "vinculacion_id": "={{ $json.vinculacion_id }}",
+            "usuario_id": "={{ $json.usuario_id }}",
+            "chat_id": "={{ $json.chat_id }}",
+            "telegram_username": "={{ $json.telegram_username }}",
+            "fecha_vinculacion": "={{ $json.fecha_vinculacion }}",
+            "estado": "={{ $json.estado }}",
+            "canal": "={{ $json.canal }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "vinculacion_id",
+              "displayName": "vinculacion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "telegram_username",
+              "displayName": "telegram_username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha_vinculacion",
+              "displayName": "fecha_vinculacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "canal",
+              "displayName": "canal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2896,
+        1168
+      ],
+      "id": "c41959a2-01ed-4d34-9609-540e5384eb93",
+      "name": "Registrar vinculación Telegram",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const codigo = $('Buscar código Telegram').first().json;\n\nreturn [{\n  json: {\n    codigo_id: codigo.codigo_id,\n    usuario_id: codigo.usuario_id,\n    codigo: codigo.codigo,\n    creado_en: codigo.creado_en,\n    expira_en: codigo.expira_en,\n    estado: 'USADO',\n    usado_en: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        1168
+      ],
+      "id": "aa502a6f-6726-4d5f-8b32-aba20e2d68d7",
+      "name": "Preparar código Telegram usado"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os",
+          "mode": "list",
+          "cachedResultName": "EP03_Telegram",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Codigos_Vinculacion",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "codigo_id": "={{ $json.codigo_id }}",
+            "usuario_id": "={{ $json.usuario_id }}",
+            "codigo": "={{ $json.codigo }}",
+            "creado_en": "={{ $json.creado_en }}",
+            "expira_en": "={{ $json.expira_en }}",
+            "estado": "={{ $json.estado }}",
+            "usado_en": "={{ $json.usado_en }}"
+          },
+          "matchingColumns": [
+            "codigo_id"
+          ],
+          "schema": [
+            {
+              "id": "codigo_id",
+              "displayName": "codigo_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "codigo",
+              "displayName": "codigo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "creado_en",
+              "displayName": "creado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "expira_en",
+              "displayName": "expira_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "usado_en",
+              "displayName": "usado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3344,
+        1168
+      ],
+      "id": "5899fb41-c0a7-40e5-8cb2-3a47de8260e9",
+      "name": "Marcar código Telegram como usado",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const vinculacion = $('Preparar vinculación Telegram').first().json;\n\nreturn [{\n  json: {\n    ok: true,\n    chat_id: vinculacion.chat_id,\n    usuario_id: vinculacion.usuario_id,\n    vinculacion_id: vinculacion.vinculacion_id,\n    message: 'Telegram vinculado correctamente'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3568,
+        1168
+      ],
+      "id": "ada96cec-ebff-4ac5-bf6e-68c1cd1fc360",
+      "name": "Resultado vinculación Telegram"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3792,
+        1264
+      ],
+      "id": "13a429ee-142a-4a4c-bb9d-47558c06ec4b",
+      "name": "Enviar respuesta Telegram",
+      "webhookId": "d7439914-106b-4640-bda3-910a06aa74fd",
+      "credentials": {
+        "telegramApi": {
+          "id": "bJ8TsYp3lSCwLjsl",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const codigo = $('Buscar código Telegram').first().json;\nconst telegram = $('Extraer comando Telegram').first().json;\n\nlet message = 'El código ya no está disponible.';\n\nif (String(codigo.estado ?? '').toUpperCase() === 'USADO') {\n  message = 'Este código de vinculación ya fue utilizado.';\n}\n\nif (String(codigo.estado ?? '').toUpperCase() === 'EXPIRADO') {\n  message = 'Este código de vinculación está expirado.';\n}\n\nif (String(codigo.estado ?? '').toUpperCase() === 'CANCELADO') {\n  message = 'Este código de vinculación fue cancelado.';\n}\n\nreturn [{\n  json: {\n    chat_id: telegram.chat_id,\n    message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3568,
+        1360
+      ],
+      "id": "9352f0be-d2cd-4a34-bb20-c54fcd64e290",
+      "name": "Resultado Telegram - Código no disponible"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Solicitar código de vinculación": {
+      "main": [
+        [
+          {
+            "node": "Extraer token de sesión",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer token de sesión": {
+      "main": [
+        [
+          {
+            "node": "Buscar sesión",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar sesión": {
+      "main": [
+        [
+          {
+            "node": "¿Sesión válida para vincular?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Sesión válida para vincular?": {
+      "main": [
+        [
+          {
+            "node": "Buscar usuario de sesión",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta - Sesión inválida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar usuario de sesión": {
+      "main": [
+        [
+          {
+            "node": "¿Usuario activo para vincular?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Usuario activo para vincular?": {
+      "main": [
+        [
+          {
+            "node": "Generar código de vinculación",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta - Usuario inactivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar código de vinculación": {
+      "main": [
+        [
+          {
+            "node": "Registrar código",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar código": {
+      "main": [
+        [
+          {
+            "node": "Respuesta - Código generado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recibir vinculación WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Extraer comando WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer comando WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "¿Es comando de vinculación?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es comando de vinculación?": {
+      "main": [
+        [
+          {
+            "node": "Buscar código recibido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar código recibido": {
+      "main": [
+        [
+          {
+            "node": "¿Código existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Código existe?": {
+      "main": [
+        [
+          {
+            "node": "¿Código pendiente?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado - Código inexistente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Código pendiente?": {
+      "main": [
+        [
+          {
+            "node": "¿Código vigente?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado - Código no disponible",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Código vigente?": {
+      "main": [
+        [
+          {
+            "node": "Preparar vinculación WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar código expirado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar vinculación WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Registrar vinculación WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar vinculación WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Preparar código usado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar código usado": {
+      "main": [
+        [
+          {
+            "node": "Marcar código como usado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar código como usado": {
+      "main": [
+        [
+          {
+            "node": "Resultado vinculación WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar código expirado": {
+      "main": [
+        [
+          {
+            "node": "Marcar código expirado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar código expirado": {
+      "main": [
+        [
+          {
+            "node": "Resultado - Código expirado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar respuesta WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Enviar respuesta WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado vinculación WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado - Código expirado": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado - Código no disponible": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado - Código inexistente": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recibir vinculación Telegram": {
+      "main": [
+        [
+          {
+            "node": "Extraer comando Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer comando Telegram": {
+      "main": [
+        [
+          {
+            "node": "¿Es comando Telegram válido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es comando Telegram válido?": {
+      "main": [
+        [
+          {
+            "node": "Buscar código Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar código Telegram": {
+      "main": [
+        [
+          {
+            "node": "¿Código Telegram existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Código Telegram existe?": {
+      "main": [
+        [
+          {
+            "node": "¿Código Telegram pendiente?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado - Código inexistente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Código Telegram pendiente?": {
+      "main": [
+        [
+          {
+            "node": "¿Código Telegram vigente?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado Telegram - Código no disponible",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Código Telegram vigente?": {
+      "main": [
+        [
+          {
+            "node": "Preparar vinculación Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar respuesta WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar vinculación Telegram": {
+      "main": [
+        [
+          {
+            "node": "Registrar vinculación Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar vinculación Telegram": {
+      "main": [
+        [
+          {
+            "node": "Preparar código Telegram usado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar código Telegram usado": {
+      "main": [
+        [
+          {
+            "node": "Marcar código Telegram como usado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar código Telegram como usado": {
+      "main": [
+        [
+          {
+            "node": "Resultado vinculación Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado vinculación Telegram": {
+      "main": [
+        [
+          {
+            "node": "Enviar respuesta Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado Telegram - Código no disponible": {
+      "main": [
+        [
+          {
+            "node": "Enviar respuesta Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ae7a8d89-72d9-4637-a817-af6fe82e7b33",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e18f7f45af7b762d17bca0cb617e7a822a32b40f721449038e7b3ba0ac7130a4"
+  },
+  "nodeGroups": [],
+  "id": "Ifm5po2lZTTU5Mel",
+  "tags": []
+}
