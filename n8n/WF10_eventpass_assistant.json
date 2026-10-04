@@ -3,6 +3,8 @@
   "nodes": [
     {
       "parameters": {
+        "public": true,
+        "initialMessages": "¡Hola! Soy EventPass Assistant 👋\nPuedo ayudarte con eventos, fechas, lugares, categorías, lista de espera y el funcionamiento de EventPass.",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
@@ -980,17 +982,30 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "47549c92-b8ae-4426-8610-c4694a3398d6",
+  "versionId": "e03124ab-ba97-4f1e-9755-dc7bf0e29645",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "e18f7f45af7b762d17bca0cb617e7a822a32b40f721449038e7b3ba0ac7130a4"
   },
   "nodeGroups": [],
   "id": "rboilfm5qVOeKvhH",
-  "tags": []
+  "tags": [
+    {
+      "updatedAt": "2026-09-27T17:27:03.143Z",
+      "createdAt": "2026-09-27T17:27:03.143Z",
+      "id": "PXWHsnEwf5WQ00SM",
+      "name": "sheets"
+    },
+    {
+      "updatedAt": "2026-10-04T18:27:14.273Z",
+      "createdAt": "2026-10-04T18:27:02.821Z",
+      "id": "kiYd8v2iMzvxnaqv",
+      "name": "gemini"
+    }
+  ]
 }
