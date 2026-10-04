@@ -1,0 +1,1928 @@
+{
+  "name": "WF05 - Catálogo público",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eventpass/catalogo",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        -656
+      ],
+      "id": "ab0da8ea-ab75-49c7-87b8-179dd062452b",
+      "name": "Entrada Catálogo",
+      "webhookId": "70d720df-3137-4e2d-aa2f-9cc3b5965c77"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? {};\n\nconst action = String(\n  body.action ?? ''\n).trim().toUpperCase();\n\nconst evento_id = body.evento_id\n  ? String(body.evento_id).trim()\n  : null;\n\nconst categoria = body.categoria\n  ? String(body.categoria)\n      .trim()\n      .toUpperCase()\n      .replace(/\\s+/g, '_')\n  : null;\n\nconst visitor_id = body.visitor_id\n  ? String(body.visitor_id).trim()\n  : null;\n\nlet route = 'INVALID';\nlet error = null;\n\nswitch (action) {\n  case 'LIST':\n  case 'LISTADO':\n    route = 'LISTADO';\n    break;\n\n  case 'DETAIL':\n  case 'DETALLE':\n    if (!evento_id) {\n      error = 'evento_id es obligatorio';\n    } else {\n      route = 'DETALLE';\n    }\n    break;\n\n  case 'FILTER':\n  case 'FILTRO':\n    if (!categoria) {\n      error = 'categoria es obligatoria';\n    } else {\n      route = 'FILTRO';\n    }\n    break;\n\n  case 'AVAILABILITY':\n  case 'DISPONIBILIDAD':\n    if (!evento_id) {\n      error = 'evento_id es obligatorio';\n    } else {\n      route = 'DISPONIBILIDAD';\n    }\n    break;\n\n  default:\n    error = 'Acción no válida';\n}\n\nreturn [{\n  json: {\n    route,\n    action,\n    evento_id,\n    categoria,\n    visitor_id,\n    error\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        -656
+      ],
+      "id": "da4e9c50-e9ac-4ffc-a849-1f3b79310efc",
+      "name": "Normalizar y validar catálogo"
+    },
+    {
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 5,
+        "output": "={{\n  ({\n    LISTADO: 0,\n    DETALLE: 1,\n    FILTRO: 2,\n    DISPONIBILIDAD: 3,\n    INVALID: 4\n  })[$json.route] ?? 4\n}}"
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        -704
+      ],
+      "id": "f57486bd-c5f0-4310-8e9b-19dd5f6aba3d",
+      "name": "Switch - Acción Catálogo"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    ok: false,\n    error: $('Normalizar y validar catálogo').first().json.error\n      ?? 'Solicitud inválida'\n  }\n}}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        16
+      ],
+      "id": "e37198fb-7470-4d0f-a4f9-795a88c170ba",
+      "name": "Respuesta - Catálogo inválido"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        -1424
+      ],
+      "id": "48263ed4-266a-40a9-b04b-e228306754fa",
+      "name": "Leer eventos LISTADO",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4fcb53c3-310f-4c05-b494-6ba6ae90554e",
+              "leftValue": "={{ String($json.estado ?? '').trim().toUpperCase() }}",
+              "rightValue": "PUBLICADO",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        -1424
+      ],
+      "id": "054e33a8-9f84-4766-939b-1cf80885fb7c",
+      "name": "Filtrar eventos publicables LISTADO"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY",
+          "mode": "list",
+          "cachedResultName": "EP06_Inscripciones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Inscripciones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        -1232
+      ],
+      "id": "9cebfc37-64a2-48df-9b81-754221cdd8f2",
+      "name": "Leer inscripciones LISTADO",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1120,
+        -1328
+      ],
+      "id": "a6448bac-11ff-438d-a984-03ea9a23d88c",
+      "name": "Sincronizar datos LISTADO"
+    },
+    {
+      "parameters": {
+        "jsCode": "const eventos = $('Filtrar eventos publicables LISTADO')\n  .all()\n  .map(item => item.json);\n\nconst inscripciones = $('Leer inscripciones LISTADO')\n  .all()\n  .map(item => item.json)\n  .filter(item => item.inscripcion_id);\n\nconst confirmadasPorEvento = {};\n\nfor (const inscripcion of inscripciones) {\n  const estado = String(inscripcion.estado ?? '')\n    .trim()\n    .toUpperCase();\n\n  if (estado !== 'CONFIRMADA') {\n    continue;\n  }\n\n  const eventoId = String(inscripcion.evento_id ?? '').trim();\n\n  if (!eventoId) {\n    continue;\n  }\n\n  confirmadasPorEvento[eventoId] =\n    (confirmadasPorEvento[eventoId] ?? 0) + 1;\n}\n\nconst resultado = eventos.map(evento => {\n  const capacidad = Number(evento.capacidad ?? 0);\n\n  const inscripciones_confirmadas =\n    confirmadasPorEvento[evento.evento_id] ?? 0;\n\n  const cupos_disponibles = Math.max(\n    capacidad - inscripciones_confirmadas,\n    0\n  );\n\n  return {\n    evento_id: evento.evento_id,\n    nombre: evento.nombre,\n    categoria: evento.categoria,\n    descripcion: evento.descripcion,\n    fecha: evento.fecha,\n    hora: evento.hora,\n    lugar: evento.lugar,\n    capacidad,\n    inscripciones_confirmadas,\n    cupos_disponibles,\n    disponible: cupos_disponibles > 0,\n    imagen_url: evento.imagen_url ?? '',\n    organizador: evento.organizador,\n    estado: evento.estado\n  };\n});\n\nreturn [{\n  json: {\n    ok: true,\n    tipo: 'LISTADO',\n    resultado_count: resultado.length,\n    eventos: resultado\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        -1328
+      ],
+      "id": "5e80bd25-29d7-4653-a0f9-fd3181f0f8db",
+      "name": "Calcular disponibilidad LISTADO"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst resultado = $('Calcular disponibilidad LISTADO').first().json;\nconst entrada = $('Normalizar y validar catálogo').first().json;\n\nreturn [{\n  json: {\n    consulta_id: `qry_${crypto.randomUUID()}`,\n    fecha: new Date().toISOString(),\n    tipo: 'LISTADO',\n    evento_id: '',\n    categoria: '',\n    resultado_count: resultado.resultado_count,\n    visitor_id: entrada.visitor_id ?? '',\n    status_http: 200\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        -1328
+      ],
+      "id": "43ce84e5-379a-415a-b936-41652617cdf6",
+      "name": "Preparar log LISTADO"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM",
+          "mode": "list",
+          "cachedResultName": "EP05_Catalogo_Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Consultas_Catalogo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "consulta_id": "={{ $json.consulta_id }}",
+            "fecha": "={{ $json.fecha }}",
+            "tipo": "={{ $json.tipo }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "categoria": "={{ $json.categoria }}",
+            "resultado_count": "={{ $json.resultado_count }}",
+            "visitor_id": "={{ $json.visitor_id }}",
+            "status_http": "={{ $json.status_http }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "consulta_id",
+              "displayName": "consulta_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resultado_count",
+              "displayName": "resultado_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "visitor_id",
+              "displayName": "visitor_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status_http",
+              "displayName": "status_http",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1792,
+        -1328
+      ],
+      "id": "eaa1e339-132b-44b5-b064-6e858529a5e6",
+      "name": "Registrar consulta LISTADO",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  $('Calcular disponibilidad LISTADO').first().json\n}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2016,
+        -1328
+      ],
+      "id": "8dc25cfe-d397-4682-8e91-7b4285b6849c",
+      "name": "Respuesta - LISTADO"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "evento_id",
+              "lookupValue": "={{ $('Normalizar y validar catálogo').first().json.evento_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        -944
+      ],
+      "id": "5fd66713-8c61-42d5-b995-1e30e8391209",
+      "name": "Buscar evento DETALLE",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "334f6eb0-8a59-47bd-8c32-193fbd68aa2d",
+              "leftValue": "={{\n  !!$json.evento_id &&\n  String($json.estado ?? '').trim().toUpperCase() === 'PUBLICADO'\n}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        -944
+      ],
+      "id": "1ad72e24-9e60-4d62-a439-44933c30eaa9",
+      "name": "¿Evento publicable DETALLE?"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY",
+          "mode": "list",
+          "cachedResultName": "EP06_Inscripciones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Inscripciones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1120,
+        -1040
+      ],
+      "id": "99221bf2-914a-4bef-a9c4-e1319b25421f",
+      "name": "Leer inscripciones DETALLE",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const evento = $('Buscar evento DETALLE').first().json;\n\nconst inscripciones = $('Leer inscripciones DETALLE')\n  .all()\n  .map(item => item.json)\n  .filter(item => item.inscripcion_id);\n\nconst confirmadas = inscripciones.filter(inscripcion => {\n  return (\n    String(inscripcion.evento_id ?? '').trim() ===\n      String(evento.evento_id ?? '').trim()\n    &&\n    String(inscripcion.estado ?? '').trim().toUpperCase() ===\n      'CONFIRMADA'\n  );\n}).length;\n\nconst capacidad = Number(evento.capacidad ?? 0);\n\nconst cupos_disponibles = Math.max(\n  capacidad - confirmadas,\n  0\n);\n\nreturn [{\n  json: {\n    ok: true,\n    tipo: 'DETALLE',\n    evento: {\n      evento_id: evento.evento_id,\n      nombre: evento.nombre,\n      categoria: evento.categoria,\n      descripcion: evento.descripcion,\n      fecha: evento.fecha,\n      hora: evento.hora,\n      lugar: evento.lugar,\n      capacidad,\n      inscripciones_confirmadas: confirmadas,\n      cupos_disponibles,\n      disponible: cupos_disponibles > 0,\n      imagen_url: evento.imagen_url ?? '',\n      organizador: evento.organizador,\n      estado: evento.estado\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        -1040
+      ],
+      "id": "4486c9cc-d669-409c-91f7-41e65ce2e6bd",
+      "name": "Calcular disponibilidad DETALLE"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst entrada =\n  $('Normalizar y validar catálogo').first().json;\n\nreturn [{\n  json: {\n    consulta_id: `qry_${crypto.randomUUID()}`,\n    fecha: new Date().toISOString(),\n    tipo: 'DETALLE',\n    evento_id: entrada.evento_id ?? '',\n    categoria: '',\n    resultado_count: 1,\n    visitor_id: entrada.visitor_id ?? '',\n    status_http: 200\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        -1040
+      ],
+      "id": "af289e8e-aaa2-4ce2-aea3-32b63a887f87",
+      "name": "Preparar log DETALLE"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM",
+          "mode": "list",
+          "cachedResultName": "EP05_Catalogo_Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Consultas_Catalogo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "consulta_id": "={{ $json.consulta_id }}",
+            "fecha": "={{ $json.fecha }}",
+            "tipo": "={{ $json.tipo }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "categoria": "={{ $json.categoria }}",
+            "resultado_count": "={{ $json.resultado_count }}",
+            "visitor_id": "={{ $json.visitor_id }}",
+            "status_http": "={{ $json.status_http }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "consulta_id",
+              "displayName": "consulta_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resultado_count",
+              "displayName": "resultado_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "visitor_id",
+              "displayName": "visitor_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status_http",
+              "displayName": "status_http",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1792,
+        -1040
+      ],
+      "id": "5084cf9e-5113-4c65-9617-53c4be8e8b04",
+      "name": "Registrar consulta DETALLE",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  $('Calcular disponibilidad DETALLE').first().json\n}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2016,
+        -1040
+      ],
+      "id": "a91db454-8fee-47c2-ad4e-2d725a1e00ff",
+      "name": "Respuesta - DETALLE"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst entrada =\n  $('Normalizar y validar catálogo').first().json;\n\nreturn [{\n  json: {\n    consulta_id: `qry_${crypto.randomUUID()}`,\n    fecha: new Date().toISOString(),\n    tipo: 'DETALLE',\n    evento_id: entrada.evento_id ?? '',\n    categoria: '',\n    resultado_count: 0,\n    visitor_id: entrada.visitor_id ?? '',\n    status_http: 404\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -848
+      ],
+      "id": "490cc74d-46e2-49d9-9ab7-bc0a0c6bc3a3",
+      "name": "Preparar log DETALLE no encontrado"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM",
+          "mode": "list",
+          "cachedResultName": "EP05_Catalogo_Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Consultas_Catalogo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "consulta_id": "={{ $json.consulta_id }}",
+            "fecha": "={{ $json.fecha }}",
+            "tipo": "={{ $json.tipo }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "categoria": "={{ $json.categoria }}",
+            "resultado_count": "={{ $json.resultado_count }}",
+            "visitor_id": "={{ $json.visitor_id }}",
+            "status_http": "={{ $json.status_http }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "consulta_id",
+              "displayName": "consulta_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resultado_count",
+              "displayName": "resultado_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "visitor_id",
+              "displayName": "visitor_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status_http",
+              "displayName": "status_http",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        -848
+      ],
+      "id": "853256a9-0801-4d78-a9d7-72016e9b854a",
+      "name": "Registrar consulta DETALLE no encontrado",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    ok: false,\n    error: \"Evento no encontrado o no disponible públicamente\",\n    evento_id:\n      $('Normalizar y validar catálogo').first().json.evento_id\n  }\n}}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1568,
+        -848
+      ],
+      "id": "046005d1-1e2d-4281-a2d8-694774a9ebfb",
+      "name": "Respuesta - DETALLE no encontrado"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        -656
+      ],
+      "id": "fb2d8adf-d92b-49b5-bc0f-130c1f0e5657",
+      "name": "Leer eventos FILTRO",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e0ee1d4f-6a08-4ca3-aecd-3d8bcaabb1ea",
+              "leftValue": "={{ String($json.estado ?? '').trim().toUpperCase() }}",
+              "rightValue": "PUBLICADO",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "1b1f78c4-1b1b-41e3-956f-ec53cb177b55",
+              "leftValue": "={{ String($json.categoria ?? '').trim().toUpperCase() }}",
+              "rightValue": "={{ $('Normalizar y validar catálogo').first().json.categoria }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        -656
+      ],
+      "id": "13c4faf2-da7e-424f-b4bd-be9417ae173c",
+      "name": "Filtrar eventos por categoría"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY",
+          "mode": "list",
+          "cachedResultName": "EP06_Inscripciones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Inscripciones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        -464
+      ],
+      "id": "1a6b4ab6-ac45-4bdb-9951-9fdda7f4deac",
+      "name": "Leer inscripciones FILTRO",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1120,
+        -560
+      ],
+      "id": "b4450647-3bba-4d84-8284-c06e566c1c94",
+      "name": "Sincronizar datos FILTRO"
+    },
+    {
+      "parameters": {
+        "jsCode": "const eventos = $('Filtrar eventos por categoría')\n  .all()\n  .map(item => item.json);\n\nconst inscripciones = $('Leer inscripciones FILTRO')\n  .all()\n  .map(item => item.json)\n  .filter(item => item.inscripcion_id);\n\nconst confirmadasPorEvento = {};\n\nfor (const inscripcion of inscripciones) {\n  const estado = String(inscripcion.estado ?? '')\n    .trim()\n    .toUpperCase();\n\n  if (estado !== 'CONFIRMADA') continue;\n\n  const eventoId = String(\n    inscripcion.evento_id ?? ''\n  ).trim();\n\n  if (!eventoId) continue;\n\n  confirmadasPorEvento[eventoId] =\n    (confirmadasPorEvento[eventoId] ?? 0) + 1;\n}\n\nconst resultado = eventos.map(evento => {\n  const capacidad = Number(evento.capacidad ?? 0);\n\n  const inscripciones_confirmadas =\n    confirmadasPorEvento[evento.evento_id] ?? 0;\n\n  const cupos_disponibles = Math.max(\n    capacidad - inscripciones_confirmadas,\n    0\n  );\n\n  return {\n    evento_id: evento.evento_id,\n    nombre: evento.nombre,\n    categoria: evento.categoria,\n    descripcion: evento.descripcion,\n    fecha: evento.fecha,\n    hora: evento.hora,\n    lugar: evento.lugar,\n    capacidad,\n    inscripciones_confirmadas,\n    cupos_disponibles,\n    disponible: cupos_disponibles > 0,\n    imagen_url: evento.imagen_url ?? '',\n    organizador: evento.organizador,\n    estado: evento.estado\n  };\n});\n\nreturn [{\n  json: {\n    ok: true,\n    tipo: 'FILTRO',\n    categoria:\n      $('Normalizar y validar catálogo').first().json.categoria,\n    resultado_count: resultado.length,\n    eventos: resultado\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        -560
+      ],
+      "id": "2fc37f27-9950-49ed-992a-21863e7e19c2",
+      "name": "Calcular disponibilidad FILTRO"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst resultado =\n  $('Calcular disponibilidad FILTRO').first().json;\n\nconst entrada =\n  $('Normalizar y validar catálogo').first().json;\n\nreturn [{\n  json: {\n    consulta_id: `qry_${crypto.randomUUID()}`,\n    fecha: new Date().toISOString(),\n    tipo: 'FILTRO',\n    evento_id: '',\n    categoria: entrada.categoria ?? '',\n    resultado_count: resultado.resultado_count,\n    visitor_id: entrada.visitor_id ?? '',\n    status_http: 200\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        -560
+      ],
+      "id": "f832721a-710c-4e19-86ac-e7a9612335e1",
+      "name": "Preparar log FILTRO"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM",
+          "mode": "list",
+          "cachedResultName": "EP05_Catalogo_Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Consultas_Catalogo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "consulta_id": "={{ $json.consulta_id }}",
+            "fecha": "={{ $json.fecha }}",
+            "tipo": "={{ $json.tipo }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "categoria": "={{ $json.categoria }}",
+            "resultado_count": "={{ $json.resultado_count }}",
+            "visitor_id": "={{ $json.visitor_id }}",
+            "status_http": "={{ $json.status_http }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "consulta_id",
+              "displayName": "consulta_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resultado_count",
+              "displayName": "resultado_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "visitor_id",
+              "displayName": "visitor_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status_http",
+              "displayName": "status_http",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1792,
+        -560
+      ],
+      "id": "66603814-3f23-4d61-be62-f8300ce79d1c",
+      "name": "Registrar consulta FILTRO",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  $('Calcular disponibilidad FILTRO').first().json\n}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2016,
+        -560
+      ],
+      "id": "6621656a-b3cf-4aa1-aa39-3de4f8513f18",
+      "name": "Respuesta - FILTRO"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "evento_id",
+              "lookupValue": "={{ $('Normalizar y validar catálogo').first().json.evento_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        -176
+      ],
+      "id": "8ef13710-0cc5-473a-b044-82eba172eef5",
+      "name": "Buscar evento DISPONIBILIDAD",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c1392f02-99de-4ee0-8b52-f380428d9412",
+              "leftValue": "={{\n  !!$json.evento_id &&\n  String($json.estado ?? '').trim().toUpperCase() === 'PUBLICADO'\n}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        -176
+      ],
+      "id": "acaf63cb-9de9-474a-b54a-f599e0107abf",
+      "name": "¿Evento publicable DISPONIBILIDAD?"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY",
+          "mode": "list",
+          "cachedResultName": "EP06_Inscripciones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Inscripciones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1120,
+        -272
+      ],
+      "id": "d6fe0d7c-a4e7-4ea6-98b8-548f2c110170",
+      "name": "Leer inscripciones DISPONIBILIDAD",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const evento =\n  $('Buscar evento DISPONIBILIDAD').first().json;\n\nconst inscripciones =\n  $('Leer inscripciones DISPONIBILIDAD')\n    .all()\n    .map(item => item.json)\n    .filter(item => item.inscripcion_id);\n\nconst confirmadas = inscripciones.filter(inscripcion => {\n  return (\n    String(inscripcion.evento_id ?? '').trim() ===\n      String(evento.evento_id ?? '').trim()\n    &&\n    String(inscripcion.estado ?? '')\n      .trim()\n      .toUpperCase() === 'CONFIRMADA'\n  );\n}).length;\n\nconst capacidad = Number(evento.capacidad ?? 0);\n\nconst cupos_disponibles = Math.max(\n  capacidad - confirmadas,\n  0\n);\n\nreturn [{\n  json: {\n    ok: true,\n    tipo: 'DISPONIBILIDAD',\n    evento_id: evento.evento_id,\n    nombre: evento.nombre,\n    capacidad,\n    inscripciones_confirmadas: confirmadas,\n    cupos_disponibles,\n    disponible: cupos_disponibles > 0\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        -272
+      ],
+      "id": "f320c124-beed-4223-a0ff-c1a5d20338b7",
+      "name": "Calcular DISPONIBILIDAD"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst resultado =\n  $('Calcular DISPONIBILIDAD').first().json;\n\nconst entrada =\n  $('Normalizar y validar catálogo').first().json;\n\nreturn [{\n  json: {\n    consulta_id: `qry_${crypto.randomUUID()}`,\n    fecha: new Date().toISOString(),\n    tipo: 'DISPONIBILIDAD',\n    evento_id: entrada.evento_id ?? '',\n    categoria: '',\n    resultado_count: 1,\n    visitor_id: entrada.visitor_id ?? '',\n    status_http: 200\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        -272
+      ],
+      "id": "9fe91912-f8cc-491b-a7d6-c82339a64c73",
+      "name": "Preparar log DISPONIBILIDAD"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM",
+          "mode": "list",
+          "cachedResultName": "EP05_Catalogo_Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Consultas_Catalogo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "consulta_id": "={{ $json.consulta_id }}",
+            "fecha": "={{ $json.fecha }}",
+            "tipo": "={{ $json.tipo }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "categoria": "={{ $json.categoria }}",
+            "resultado_count": "={{ $json.resultado_count }}",
+            "visitor_id": "={{ $json.visitor_id }}",
+            "status_http": "={{ $json.status_http }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "consulta_id",
+              "displayName": "consulta_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resultado_count",
+              "displayName": "resultado_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "visitor_id",
+              "displayName": "visitor_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status_http",
+              "displayName": "status_http",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1792,
+        -272
+      ],
+      "id": "07932aa4-447b-4b38-94da-69bdbe782562",
+      "name": "Registrar consulta DISPONIBILIDAD",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  $('Calcular DISPONIBILIDAD').first().json\n}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2016,
+        -272
+      ],
+      "id": "e1c10767-e605-41d6-a445-c90cdb85af79",
+      "name": "Respuesta - DISPONIBILIDAD"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst entrada =\n  $('Normalizar y validar catálogo').first().json;\n\nreturn [{\n  json: {\n    consulta_id: `qry_${crypto.randomUUID()}`,\n    fecha: new Date().toISOString(),\n    tipo: 'DISPONIBILIDAD',\n    evento_id: entrada.evento_id ?? '',\n    categoria: '',\n    resultado_count: 0,\n    visitor_id: entrada.visitor_id ?? '',\n    status_http: 404\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -80
+      ],
+      "id": "3591dd94-97f4-475f-85d0-c45c9855f6e1",
+      "name": "Preparar log DISPONIBILIDAD no encontrada"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM",
+          "mode": "list",
+          "cachedResultName": "EP05_Catalogo_Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Consultas_Catalogo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RuK7G51mKT9cwR68l9LKRsqKcPXeSda3SE2LYnQCFqM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "consulta_id": "={{ $json.consulta_id }}",
+            "fecha": "={{ $json.fecha }}",
+            "tipo": "={{ $json.tipo }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "categoria": "={{ $json.categoria }}",
+            "resultado_count": "={{ $json.resultado_count }}",
+            "visitor_id": "={{ $json.visitor_id }}",
+            "status_http": "={{ $json.status_http }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "consulta_id",
+              "displayName": "consulta_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resultado_count",
+              "displayName": "resultado_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "visitor_id",
+              "displayName": "visitor_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status_http",
+              "displayName": "status_http",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        -80
+      ],
+      "id": "d3600918-51d6-469e-8943-3a71f8b51d92",
+      "name": "Registrar consulta DISPONIBILIDAD no encontrada",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    ok: false,\n    error: \"Evento no encontrado o no disponible públicamente\",\n    evento_id:\n      $('Normalizar y validar catálogo').first().json.evento_id\n  }\n}}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1568,
+        -80
+      ],
+      "id": "4128988f-e990-4423-ad66-88b8406dc343",
+      "name": "Respuesta - DISPONIBILIDAD no encontrada"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Entrada Catálogo": {
+      "main": [
+        [
+          {
+            "node": "Normalizar y validar catálogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar y validar catálogo": {
+      "main": [
+        [
+          {
+            "node": "Switch - Acción Catálogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Acción Catálogo": {
+      "main": [
+        [
+          {
+            "node": "Leer eventos LISTADO",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Leer inscripciones LISTADO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar evento DETALLE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Leer eventos FILTRO",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Leer inscripciones FILTRO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar evento DISPONIBILIDAD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta - Catálogo inválido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer eventos LISTADO": {
+      "main": [
+        [
+          {
+            "node": "Filtrar eventos publicables LISTADO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar eventos publicables LISTADO": {
+      "main": [
+        [
+          {
+            "node": "Sincronizar datos LISTADO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer inscripciones LISTADO": {
+      "main": [
+        [
+          {
+            "node": "Sincronizar datos LISTADO",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Sincronizar datos LISTADO": {
+      "main": [
+        [
+          {
+            "node": "Calcular disponibilidad LISTADO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular disponibilidad LISTADO": {
+      "main": [
+        [
+          {
+            "node": "Preparar log LISTADO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar log LISTADO": {
+      "main": [
+        [
+          {
+            "node": "Registrar consulta LISTADO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar consulta LISTADO": {
+      "main": [
+        [
+          {
+            "node": "Respuesta - LISTADO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar evento DETALLE": {
+      "main": [
+        [
+          {
+            "node": "¿Evento publicable DETALLE?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Evento publicable DETALLE?": {
+      "main": [
+        [
+          {
+            "node": "Leer inscripciones DETALLE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar log DETALLE no encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer inscripciones DETALLE": {
+      "main": [
+        [
+          {
+            "node": "Calcular disponibilidad DETALLE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular disponibilidad DETALLE": {
+      "main": [
+        [
+          {
+            "node": "Preparar log DETALLE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar log DETALLE": {
+      "main": [
+        [
+          {
+            "node": "Registrar consulta DETALLE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar consulta DETALLE": {
+      "main": [
+        [
+          {
+            "node": "Respuesta - DETALLE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar log DETALLE no encontrado": {
+      "main": [
+        [
+          {
+            "node": "Registrar consulta DETALLE no encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar consulta DETALLE no encontrado": {
+      "main": [
+        [
+          {
+            "node": "Respuesta - DETALLE no encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer eventos FILTRO": {
+      "main": [
+        [
+          {
+            "node": "Filtrar eventos por categoría",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer inscripciones FILTRO": {
+      "main": [
+        [
+          {
+            "node": "Sincronizar datos FILTRO",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Filtrar eventos por categoría": {
+      "main": [
+        [
+          {
+            "node": "Sincronizar datos FILTRO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sincronizar datos FILTRO": {
+      "main": [
+        [
+          {
+            "node": "Calcular disponibilidad FILTRO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular disponibilidad FILTRO": {
+      "main": [
+        [
+          {
+            "node": "Preparar log FILTRO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar log FILTRO": {
+      "main": [
+        [
+          {
+            "node": "Registrar consulta FILTRO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar consulta FILTRO": {
+      "main": [
+        [
+          {
+            "node": "Respuesta - FILTRO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar evento DISPONIBILIDAD": {
+      "main": [
+        [
+          {
+            "node": "¿Evento publicable DISPONIBILIDAD?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Evento publicable DISPONIBILIDAD?": {
+      "main": [
+        [
+          {
+            "node": "Leer inscripciones DISPONIBILIDAD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar log DISPONIBILIDAD no encontrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer inscripciones DISPONIBILIDAD": {
+      "main": [
+        [
+          {
+            "node": "Calcular DISPONIBILIDAD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular DISPONIBILIDAD": {
+      "main": [
+        [
+          {
+            "node": "Preparar log DISPONIBILIDAD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar log DISPONIBILIDAD": {
+      "main": [
+        [
+          {
+            "node": "Registrar consulta DISPONIBILIDAD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar consulta DISPONIBILIDAD": {
+      "main": [
+        [
+          {
+            "node": "Respuesta - DISPONIBILIDAD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar log DISPONIBILIDAD no encontrada": {
+      "main": [
+        [
+          {
+            "node": "Registrar consulta DISPONIBILIDAD no encontrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar consulta DISPONIBILIDAD no encontrada": {
+      "main": [
+        [
+          {
+            "node": "Respuesta - DISPONIBILIDAD no encontrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a46890a1-c4f7-4e91-befd-3314c665aed6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e18f7f45af7b762d17bca0cb617e7a822a32b40f721449038e7b3ba0ac7130a4"
+  },
+  "nodeGroups": [],
+  "id": "JwHUHs2zvc1i42eX",
+  "tags": []
+}
