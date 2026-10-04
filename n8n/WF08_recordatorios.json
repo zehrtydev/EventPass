@@ -1,0 +1,716 @@
+{
+  "name": "WF08 - Recordatorios automáticos",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        192
+      ],
+      "id": "077e9f52-b605-4d19-8823-0fb453fd5857",
+      "name": "Revisar recordatorios"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0",
+          "mode": "list",
+          "cachedResultName": "EP04_Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Eventos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15IlCCSWBIABd418VH6MszbdKNZ6pcr7e2ih4fGX-os0/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "bdefa652-fe68-4bf8-92e4-f1eebbd92223",
+      "name": "Leer eventos RECORDATORIOS",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY",
+          "mode": "list",
+          "cachedResultName": "EP06_Inscripciones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Inscripciones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WHlWo-BT-Qx5P4ttzpHJ2V-ugvGAuh-djic0fR0aCFY/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        192
+      ],
+      "id": "395ce14a-932f-4a20-bf6d-b82903618833",
+      "name": "Leer inscripciones RECORDATORIOS",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Zq7qiRkkVNGHpnKIJs_YL80IbYouQnqr5E5n1DVUFxM",
+          "mode": "list",
+          "cachedResultName": "EP08_Recordatorios",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Zq7qiRkkVNGHpnKIJs_YL80IbYouQnqr5E5n1DVUFxM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Recordatorios",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Zq7qiRkkVNGHpnKIJs_YL80IbYouQnqr5E5n1DVUFxM/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        368
+      ],
+      "id": "27bf855b-169e-4f3a-8536-5f3e7bb5f238",
+      "name": "Leer recordatorios previos",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        96
+      ],
+      "id": "9cd376b1-c303-4928-8dc1-44315d09353a",
+      "name": "Sincronizar eventos e inscripciones"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        192
+      ],
+      "id": "4ceafe94-67f8-4e62-97ff-e09850e40cf1",
+      "name": "Sincronizar datos RECORDATORIOS"
+    },
+    {
+      "parameters": {
+        "jsCode": "const eventos =\n  $('Leer eventos RECORDATORIOS')\n    .all()\n    .map(item => item.json)\n    .filter(item => item.evento_id);\n\nconst inscripciones =\n  $('Leer inscripciones RECORDATORIOS')\n    .all()\n    .map(item => item.json)\n    .filter(item => item.inscripcion_id);\n\nconst anteriores =\n  $('Leer recordatorios previos')\n    .all()\n    .map(item => item.json)\n    .filter(item => item.recordatorio_id);\n\nconst ahora = new Date();\n\n// Ventana de implementación:\n// recordatorio dentro de las próximas 48 horas.\nconst LIMITE_MS = 48 * 60 * 60 * 1000;\n\nconst tipoRecordatorio = 'EVENTO_48H';\n\nconst candidatos = [];\n\nfor (const evento of eventos) {\n  if (\n    String(evento.estado ?? '')\n      .trim()\n      .toUpperCase() !== 'PUBLICADO'\n  ) {\n    continue;\n  }\n\n  const fecha = String(evento.fecha ?? '').trim();\n  const hora = String(evento.hora ?? '00:00').trim();\n\n  if (!fecha) continue;\n\n  const fechaEvento = new Date(`${fecha}T${hora}:00-05:00`);\n\n  if (Number.isNaN(fechaEvento.getTime())) {\n    continue;\n  }\n\n  const diferenciaMs =\n    fechaEvento.getTime() - ahora.getTime();\n\n  // No enviar si ya ocurrió o faltan más de 48 horas.\n  if (\n    diferenciaMs <= 0 ||\n    diferenciaMs > LIMITE_MS\n  ) {\n    continue;\n  }\n\n  const confirmadas = inscripciones.filter(inscripcion => {\n    return (\n      String(inscripcion.evento_id ?? '').trim() ===\n        String(evento.evento_id ?? '').trim()\n      &&\n      String(inscripcion.estado ?? '')\n        .trim()\n        .toUpperCase() === 'CONFIRMADA'\n    );\n  });\n\n  for (const inscripcion of confirmadas) {\n    const usuarioId =\n      String(inscripcion.usuario_id ?? '').trim();\n\n    const clave =\n      `${usuarioId}:${evento.evento_id}:${tipoRecordatorio}`;\n\nconst yaProcesado = anteriores.some(recordatorio => {\n  return (\n    String(recordatorio.clave_idempotencia ?? '').trim() === clave\n  );\n});\n\n    if (yaProcesado) {\n      continue;\n    }\n\n    candidatos.push({\n      usuario_id: usuarioId,\n\n      evento_id:\n        evento.evento_id,\n\n      inscripcion_id:\n        inscripcion.inscripcion_id,\n\n      tipo_recordatorio:\n        tipoRecordatorio,\n\n      fecha_programada:\n        fechaEvento.toISOString(),\n\n      nombre_evento:\n        evento.nombre ?? '',\n\n      fecha_evento:\n        evento.fecha ?? '',\n\n      hora_evento:\n        evento.hora ?? '',\n\n      lugar:\n        evento.lugar ?? '',\n\n      clave_idempotencia:\n        clave\n    });\n  }\n}\n\nreturn candidatos.map(candidato => ({\n  json: candidato\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        192
+      ],
+      "id": "70fe36ee-1eee-4f64-8610-e76dece2ea86",
+      "name": "Calcular recordatorios"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nreturn {\n  json: {\n    ...$json,\n\n    recordatorio_id:\n      `rem_${crypto.randomUUID()}`,\n\n    estado: 'PENDIENTE',\n\n    fecha_envio: ''\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        192
+      ],
+      "id": "2ca0878d-02de-40b9-bcbb-71d7e053be47",
+      "name": "Preparar recordatorio"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "9sq3cYzSo5WgZm4T",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/9sq3cYzSo5WgZm4T",
+          "cachedResultName": "WF09 - Servicio central de notificaciones"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "usuario_id": "={{ $('Preparar recordatorio').item.json.usuario_id }}",
+            "tipo": "RECORDATORIO_EVENTO",
+            "titulo": "Recordatorio de evento",
+            "mensaje": "={{   'Recuerda que \"' +   $('Preparar recordatorio').item.json.nombre_evento +   '\" será el ' +   $('Preparar recordatorio').item.json.fecha_evento +   ' a las ' +   $('Preparar recordatorio').item.json.hora_evento +   ' en ' +   $('Preparar recordatorio').item.json.lugar +   '.' }}",
+            "evento_id": "={{ $('Preparar recordatorio').item.json.evento_id }}",
+            "inscripcion_id": "={{ $('Preparar recordatorio').item.json.inscripcion_id }}",
+            "clave_idempotencia": "={{ $('Preparar recordatorio').item.json.clave_idempotencia }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "titulo",
+              "displayName": "titulo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "mensaje",
+              "displayName": "mensaje",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "inscripcion_id",
+              "displayName": "inscripcion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "clave_idempotencia",
+              "displayName": "clave_idempotencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        1568,
+        192
+      ],
+      "id": "ac6b05ea-a902-4184-81e8-f12c6b4428ea",
+      "name": "Notificar RECORDATORIO"
+    },
+    {
+      "parameters": {
+        "jsCode": "const recordatorio =\n  $('Preparar recordatorio').item.json;\n\nconst gmail =\n  String($json.gmail_estado ?? '')\n    .trim()\n    .toUpperCase();\n\nconst telegram =\n  String($json.telegram_estado ?? '')\n    .trim()\n    .toUpperCase();\n\nconst enviado =\n  gmail === 'ENVIADO' &&\n  telegram === 'ENVIADO';\n\nreturn {\n  json: {\n    ...recordatorio,\n\n    estado:\n      enviado ? 'ENVIADO' : 'ERROR',\n\n    fecha_envio:\n      enviado\n        ? new Date().toISOString()\n        : ''\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        192
+      ],
+      "id": "7b6fd9c1-a34b-4516-9f4d-7a351b1fe451",
+      "name": "Preparar resultado RECORDATORIO"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1Zq7qiRkkVNGHpnKIJs_YL80IbYouQnqr5E5n1DVUFxM",
+          "mode": "list",
+          "cachedResultName": "EP08_Recordatorios",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Zq7qiRkkVNGHpnKIJs_YL80IbYouQnqr5E5n1DVUFxM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Recordatorios",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Zq7qiRkkVNGHpnKIJs_YL80IbYouQnqr5E5n1DVUFxM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "recordatorio_id": "={{ $json.recordatorio_id }}",
+            "usuario_id": "={{ $json.usuario_id }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "inscripcion_id": "={{ $json.inscripcion_id }}",
+            "tipo_recordatorio": "={{ $json.tipo_recordatorio }}",
+            "fecha_programada": "={{ $json.fecha_programada }}",
+            "fecha_envio": "={{ $json.fecha_envio }}",
+            "estado": "={{ $json.estado }}",
+            "clave_idempotencia": "={{ $json.clave_idempotencia }}"
+          },
+          "matchingColumns": [
+            "recordatorio_id"
+          ],
+          "schema": [
+            {
+              "id": "recordatorio_id",
+              "displayName": "recordatorio_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "inscripcion_id",
+              "displayName": "inscripcion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo_recordatorio",
+              "displayName": "tipo_recordatorio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha_programada",
+              "displayName": "fecha_programada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha_envio",
+              "displayName": "fecha_envio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "clave_idempotencia",
+              "displayName": "clave_idempotencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2016,
+        192
+      ],
+      "id": "23847797-45d4-4fbc-823d-2b7fc8f424e4",
+      "name": "Actualizar recordatorio",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Zq7qiRkkVNGHpnKIJs_YL80IbYouQnqr5E5n1DVUFxM",
+          "mode": "list",
+          "cachedResultName": "EP08_Recordatorios",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Zq7qiRkkVNGHpnKIJs_YL80IbYouQnqr5E5n1DVUFxM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Recordatorios",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Zq7qiRkkVNGHpnKIJs_YL80IbYouQnqr5E5n1DVUFxM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "recordatorio_id": "={{ $json.recordatorio_id }}",
+            "usuario_id": "={{ $json.usuario_id }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "inscripcion_id": "={{ $json.inscripcion_id }}",
+            "tipo_recordatorio": "={{ $json.tipo_recordatorio }}",
+            "fecha_programada": "={{ $json.fecha_programada }}",
+            "fecha_envio": "={{ $json.fecha_envio }}",
+            "estado": "={{ $json.estado }}",
+            "clave_idempotencia": "={{ $json.clave_idempotencia }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "recordatorio_id",
+              "displayName": "recordatorio_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "inscripcion_id",
+              "displayName": "inscripcion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo_recordatorio",
+              "displayName": "tipo_recordatorio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha_programada",
+              "displayName": "fecha_programada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha_envio",
+              "displayName": "fecha_envio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "clave_idempotencia",
+              "displayName": "clave_idempotencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        192
+      ],
+      "id": "5f553144-9d5c-4547-8728-fe589da8309b",
+      "name": "Registrar recordatorio PENDIENTE",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Revisar recordatorios": {
+      "main": [
+        [
+          {
+            "node": "Leer eventos RECORDATORIOS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Leer inscripciones RECORDATORIOS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Leer recordatorios previos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer eventos RECORDATORIOS": {
+      "main": [
+        [
+          {
+            "node": "Sincronizar eventos e inscripciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer inscripciones RECORDATORIOS": {
+      "main": [
+        [
+          {
+            "node": "Sincronizar eventos e inscripciones",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Sincronizar eventos e inscripciones": {
+      "main": [
+        [
+          {
+            "node": "Sincronizar datos RECORDATORIOS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer recordatorios previos": {
+      "main": [
+        [
+          {
+            "node": "Sincronizar datos RECORDATORIOS",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Sincronizar datos RECORDATORIOS": {
+      "main": [
+        [
+          {
+            "node": "Calcular recordatorios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular recordatorios": {
+      "main": [
+        [
+          {
+            "node": "Preparar recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar recordatorio": {
+      "main": [
+        [
+          {
+            "node": "Registrar recordatorio PENDIENTE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar RECORDATORIO": {
+      "main": [
+        [
+          {
+            "node": "Preparar resultado RECORDATORIO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar resultado RECORDATORIO": {
+      "main": [
+        [
+          {
+            "node": "Actualizar recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar recordatorio PENDIENTE": {
+      "main": [
+        [
+          {
+            "node": "Notificar RECORDATORIO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "b814ccc0-8432-4fa9-9f1f-d4ece7ab4c1d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e18f7f45af7b762d17bca0cb617e7a822a32b40f721449038e7b3ba0ac7130a4"
+  },
+  "nodeGroups": [],
+  "id": "xBAY9dDjWxwXnMcM",
+  "tags": []
+}
