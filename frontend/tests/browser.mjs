@@ -85,8 +85,8 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('.event-card').length === 1);
   assert.ok(actions.some(action => action.action === 'FILTRO' && action.categoria === 'GAMING'));
   await page.getByRole('button', { name: 'Todas', exact: true }).click();
+  assert.equal(await page.getByRole('button', { name: 'Buscar eventos', exact: true }).count(), 0);
   await page.getByRole('textbox', { name: 'Buscar eventos, lugares o temáticas' }).fill('no existe');
-  await page.getByRole('button', { name: 'Buscar eventos', exact: true }).click();
   await page.getByRole('heading', { name: 'Todavía no hay eventos por aquí' }).waitFor();
   await page.getByRole('button', { name: 'Limpiar filtros' }).click();
   await page.getByLabel('Filtrar por fecha').selectOption('2026-11-15');
