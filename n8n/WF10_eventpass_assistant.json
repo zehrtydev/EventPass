@@ -4,7 +4,6 @@
     {
       "parameters": {
         "public": true,
-        "initialMessages": "¡Hola! Soy EventPass Assistant 👋\nPuedo ayudarte con eventos, fechas, lugares, categorías, lista de espera y el funcionamiento de EventPass.",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
@@ -600,6 +599,7 @@
       "parameters": {
         "promptType": "define",
         "text": "={{ $('Preparar contexto CHAT').first().json.mensaje }}",
+        "needsFallback": true,
         "messages": {
           "messageValues": [
             {
@@ -620,13 +620,14 @@
     },
     {
       "parameters": {
+        "modelName": "models/gemini-3.8-flash",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2,
       "position": [
-        2768,
-        144
+        2696,
+        136
       ],
       "id": "a28d593d-c2a5-4014-95e0-2c4d405f9a16",
       "name": "Google Gemini Chat Model",
@@ -776,6 +777,25 @@
       ],
       "id": "37e8b0e0-9fc5-4133-b9dd-abc93c7cb461",
       "name": "Respuesta CHAT"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        2824,
+        136
+      ],
+      "id": "1939baf7-6441-4d9e-a121-ad0059feb41c",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "IqHzs5yrxLwAorFe",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -980,6 +1000,17 @@
           }
         ]
       ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Asistente EventPass AI",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -987,7 +1018,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "e03124ab-ba97-4f1e-9755-dc7bf0e29645",
+  "versionId": "a0855175-815e-4f9f-8489-800991b6602c",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "e18f7f45af7b762d17bca0cb617e7a822a32b40f721449038e7b3ba0ac7130a4"
