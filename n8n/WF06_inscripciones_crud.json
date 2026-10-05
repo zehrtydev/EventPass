@@ -293,7 +293,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const vinculaciones =\n  $('Buscar vinculaciones CREATE')\n    .all()\n    .map(item => item.json)\n    .filter(item => item.vinculacion_id);\n\nconst telegram = vinculaciones.find(v => {\n  const estado = String(v.estado ?? '')\n    .trim()\n    .toUpperCase();\n\n  const canal = String(v.canal ?? '')\n    .trim()\n    .toUpperCase();\n\n  return (\n    estado === 'ACTIVA' &&\n    canal === 'TELEGRAM'\n  );\n});\n\nreturn [{\n  json: {\n    telegram_vinculado: !!telegram,\n    vinculacion_id: telegram?.vinculacion_id ?? null,\n    chat_id: telegram?.chat_id ?? null,\n    telegram_username:\n      telegram?.telegram_username ?? null\n  }\n}];"
+        "jsCode": "const vinculaciones =\n  $('Buscar vinculaciones CREATE')\n    .all()\n    .map(item => item.json)\n    .filter(item => item.vinculacion_id);\n\nconst canalActivo = canalBuscado => vinculaciones.find(v => {\n  const estado = String(v.estado ?? '')\n    .trim()\n    .toUpperCase();\n\n  const canal = String(v.canal ?? '')\n    .trim()\n    .toUpperCase();\n\n  return estado === 'ACTIVA' && canal === canalBuscado;\n});\n\nconst telegram = canalActivo('TELEGRAM');\nconst whatsapp = canalActivo('WHATSAPP');\n\nreturn [{\n  json: {\n    telegram_vinculado: !!telegram?.chat_id,\n    whatsapp_vinculado: !!whatsapp?.chat_id,\n    mensajeria_vinculada: !!telegram?.chat_id || !!whatsapp?.chat_id\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -302,7 +302,7 @@
         -1856
       ],
       "id": "422ec6e3-2cfe-43e8-a860-99ab0680e36f",
-      "name": "Validar Telegram CREATE"
+      "name": "Validar mensajería CREATE"
     },
     {
       "parameters": {
@@ -316,7 +316,7 @@
           "conditions": [
             {
               "id": "bd6e4c6c-f352-44fb-ac3e-3e7e7ea68ca3",
-              "leftValue": "={{ $json.telegram_vinculado === true }}",
+              "leftValue": "={{ $json.mensajeria_vinculada === true }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",
@@ -336,12 +336,12 @@
         -1856
       ],
       "id": "12d32912-bf21-4af9-8d66-1a45cf08ff6a",
-      "name": "¿Telegram vinculado CREATE?"
+      "name": "¿Mensajería vinculada CREATE?"
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{\n  {\n    ok: false,\n    error: \"Debes vincular una cuenta de Telegram antes de inscribirte\"\n  }\n}}",
+        "responseBody": "={{\n  {\n    ok: false,\n    error: \"Debes vincular una cuenta de WhatsApp o Telegram antes de inscribirte\"\n  }\n}}",
         "options": {
           "responseCode": 403
         }
@@ -353,7 +353,7 @@
         -1568
       ],
       "id": "0b8e5b07-2e1e-4042-8b2a-800d34024e7e",
-      "name": "Respuesta - Telegram requerido CREATE"
+      "name": "Respuesta - mensajería requerida CREATE"
     },
     {
       "parameters": {
@@ -2811,25 +2811,25 @@
       "main": [
         [
           {
-            "node": "Validar Telegram CREATE",
+            "node": "Validar mensajería CREATE",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Validar Telegram CREATE": {
+    "Validar mensajería CREATE": {
       "main": [
         [
           {
-            "node": "¿Telegram vinculado CREATE?",
+            "node": "¿Mensajería vinculada CREATE?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "¿Telegram vinculado CREATE?": {
+    "¿Mensajería vinculada CREATE?": {
       "main": [
         [
           {
@@ -2840,7 +2840,7 @@
         ],
         [
           {
-            "node": "Respuesta - Telegram requerido CREATE",
+            "node": "Respuesta - mensajería requerida CREATE",
             "type": "main",
             "index": 0
           }

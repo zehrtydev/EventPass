@@ -66,7 +66,7 @@ try {
       if (expired) return reply({ ok: false, error: 'Sesión inválida o expirada' }, 401);
       if (body.action === 'LIST') return reply({ ok: true, inscripciones: registrations });
       if (body.action === 'CREATE') {
-        if (!linked) return reply({ ok: false, error: 'Debes vincular una cuenta de Telegram antes de inscribirte' }, 403);
+        if (!linked) return reply({ ok: false, error: 'Debes vincular una cuenta de WhatsApp o Telegram antes de inscribirte' }, 403);
         const item = { inscripcion_id: `ins_test_${registrations.length}`, evento_id: body.evento_id, nombre_acreditacion: body.nombre_acreditacion, observaciones: body.observaciones, fecha_inscripcion: '2026-10-04T20:00:00Z', estado: body.evento_id === 'evt_test_gaming' ? 'LISTA_ESPERA' : 'CONFIRMADA', orden_espera: body.evento_id === 'evt_test_gaming' ? 1 : null };
         registrations.push(item);
         return reply({ ok: true, inscripcion: item, mensaje: 'Inscripción recibida' }, 201);
@@ -167,16 +167,18 @@ try {
   await page.getByText('Disponibilidad actualizada.').waitFor();
   await page.getByRole('button', { name: 'Inscribirme', exact: true }).click();
   await page.getByRole('button', { name: 'Confirmar inscripción' }).click();
-  await page.getByRole('alert').filter({ hasText: 'Debes vincular una cuenta de Telegram' }).waitFor();
+  await page.getByRole('alert').filter({ hasText: 'Debes vincular una cuenta de WhatsApp o Telegram' }).waitFor();
   assert.ok(await page.evaluate(() => localStorage.getItem('eventpass.session')));
-  ok('Disponibilidad real del contrato y 403 Telegram sin cerrar sesión');
+  ok('Disponibilidad real del contrato y 403 de mensajería sin cerrar sesión');
 
   await page.goto(base + '/vinculacion');
   await page.getByRole('button', { name: 'Generar código de vinculación' }).click();
   await page.locator('.generated-code strong').filter({ hasText: 'TEST42' }).waitFor();
   assert.equal(await page.locator('.command code').textContent(), '/vincular TEST42');
+  await page.getByRole('heading', { name: 'Vincula WhatsApp o Telegram' }).waitFor();
+  await page.getByText('Abre WhatsApp').waitFor();
   linked = true;
-  ok('Generación y presentación del código Telegram sin simular vinculación');
+  ok('Generación y presentación del código para WhatsApp o Telegram sin simular vinculación');
 
   for (const [id, state] of [['evt_test_anime', 'CONFIRMADA'], ['evt_test_gaming', 'LISTA_ESPERA']]) {
     await page.goto(base + '/eventos/' + id);

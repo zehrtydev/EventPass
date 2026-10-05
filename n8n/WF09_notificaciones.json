@@ -244,7 +244,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const entrada =\n  $('Preparar destinatario NOTIF').first().json;\n\nconst vinculaciones =\n  $('Buscar vinculaciones NOTIF')\n    .all()\n    .map(item => item.json)\n    .filter(item => item.vinculacion_id);\n\nconst telegram = vinculaciones.find(v => {\n  const estado = String(v.estado ?? '')\n    .trim()\n    .toUpperCase();\n\n  const canal = String(v.canal ?? '')\n    .trim()\n    .toUpperCase();\n\n  return estado === 'ACTIVA' && canal === 'TELEGRAM';\n});\n\nreturn [{\n  json: {\n    ...entrada,\n\n    gmail_disponible:\n      !!String(entrada.email ?? '').trim(),\n\n    telegram_disponible:\n      !!telegram?.chat_id,\n\n    chat_id:\n      telegram?.chat_id ?? null,\n\n    vinculacion_id:\n      telegram?.vinculacion_id ?? null\n  }\n}];"
+        "jsCode": "const entrada =\n  $('Preparar destinatario NOTIF').first().json;\n\nconst vinculaciones =\n  $('Buscar vinculaciones NOTIF')\n    .all()\n    .map(item => item.json)\n    .filter(item => item.vinculacion_id);\n\nconst canalActivo = canalBuscado => vinculaciones.find(v => {\n  const estado = String(v.estado ?? '')\n    .trim()\n    .toUpperCase();\n\n  const canal = String(v.canal ?? '')\n    .trim()\n    .toUpperCase();\n\n  return estado === 'ACTIVA' && canal === canalBuscado;\n});\n\nconst telegram = canalActivo('TELEGRAM');\nconst whatsapp = canalActivo('WHATSAPP');\nconst whatsappChatId = String(whatsapp?.chat_id ?? '').trim();\n\nreturn [{\n  json: {\n    ...entrada,\n\n    gmail_disponible:\n      !!String(entrada.email ?? '').trim(),\n\n    telegram_disponible:\n      !!telegram?.chat_id,\n\n    telegram_chat_id:\n      telegram?.chat_id ?? null,\n\n    whatsapp_disponible:\n      !!whatsappChatId,\n\n    whatsapp_numero: whatsappChatId\n      .replace('@s.whatsapp.net', '')\n      .replace(/\\D/g, ''),\n\n    telegram_vinculacion_id:\n      telegram?.vinculacion_id ?? null,\n\n    whatsapp_vinculacion_id:\n      whatsapp?.vinculacion_id ?? null\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -364,7 +364,7 @@
     },
     {
       "parameters": {
-        "chatId": "={{ $('Preparar canales NOTIF').first().json.chat_id }}",
+        "chatId": "={{ $('Preparar canales NOTIF').first().json.telegram_chat_id }}",
         "text": "={{   '*' + $('Preparar canales NOTIF').first().json.titulo + '*\\n\\n' +   $('Preparar canales NOTIF').first().json.mensaje }}",
         "additionalFields": {
           "appendAttribution": false,
@@ -414,16 +414,105 @@
         -64
       ],
       "id": "ffec9698-31ca-4cce-bae2-6c1b006cc158",
-      "name": "Unir resultados canales"
+      "name": "Unir resultados Gmail y Telegram"
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\n\nconst entrada =\n  $('Normalizar notificación').first().json;\n\nconst canales =\n  $('Unir resultados canales').first().json;\n\nreturn [{\n  json: {\n    notificacion_id:\n      entrada.notificacion_id,\n\n    usuario_id:\n      entrada.usuario_id,\n\n    tipo:\n      entrada.tipo,\n\n    titulo:\n      entrada.titulo,\n\n    mensaje:\n      entrada.mensaje,\n\n    evento_id:\n      entrada.evento_id,\n\n    inscripcion_id:\n      entrada.inscripcion_id,\n\n    fecha:\n      entrada.fecha,\n\n    gmail_estado:\n      canales.gmail_estado ?? 'NO_APLICA',\n\n    telegram_estado:\n      canales.telegram_estado ?? 'NO_APLICA',\n\n    gmail_error:\n      canales.gmail_error ?? '',\n\n    telegram_error:\n      canales.telegram_error ?? '',\n\n    clave_idempotencia:\n      entrada.clave_idempotencia\n  }\n}];"
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1da96e20-37a3-4cd4-8a5b-e9268482d5dc",
+              "leftValue": "={{ $json.whatsapp_disponible === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1792,
+        368
+      ],
+      "id": "1de563f6-2328-49ba-921f-74e77878d48a",
+      "name": "¿WhatsApp disponible NOTIF?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution.zehrty.dev/message/sendText/eventpass",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    number: $('Preparar canales NOTIF').first().json.whatsapp_numero,\n    text: $('Preparar canales NOTIF').first().json.titulo + '\\n\\n' + $('Preparar canales NOTIF').first().json.mensaje\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2016,
+        288
+      ],
+      "id": "36e097a9-f738-4c7a-807e-437552e8e1b9",
+      "name": "Enviar WhatsApp NOTIF",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "HTrRdgcLYt9D2XLR",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const base =\n  $('Preparar canales NOTIF').first().json;\n\nif (!base.whatsapp_disponible) {\n  return [{\n    json: {\n      whatsapp_estado: 'NO_APLICA',\n      whatsapp_error: 'El usuario no tiene WhatsApp vinculado'\n    }\n  }];\n}\n\nconst resultado = $json ?? {};\n\nconst error =\n  resultado.error ??\n  resultado.errors ??\n  null;\n\nreturn [{\n  json: {\n    whatsapp_estado: error ? 'ERROR' : 'ENVIADO',\n\n    whatsapp_error: error\n      ? String(\n          error.message ??\n          error.description ??\n          error\n        )\n      : ''\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
+        2240,
+        368
+      ],
+      "id": "4f52606a-ccca-4ee5-9b3d-0ca2549565a0",
+      "name": "Resultado WhatsApp NOTIF"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
         2688,
+        -64
+      ],
+      "id": "4c3fc91c-a61d-4dde-b4e8-24a70641d645",
+      "name": "Unir resultados con WhatsApp"
+    },
+    {
+      "parameters": {
+        "jsCode": "const entrada =\n  $('Normalizar notificación').first().json;\n\nconst canales =\n  $('Unir resultados con WhatsApp').first().json;\n\nreturn [{\n  json: {\n    notificacion_id:\n      entrada.notificacion_id,\n\n    usuario_id:\n      entrada.usuario_id,\n\n    tipo:\n      entrada.tipo,\n\n    titulo:\n      entrada.titulo,\n\n    mensaje:\n      entrada.mensaje,\n\n    evento_id:\n      entrada.evento_id,\n\n    inscripcion_id:\n      entrada.inscripcion_id,\n\n    fecha:\n      entrada.fecha,\n\n    gmail_estado:\n      canales.gmail_estado ?? 'NO_APLICA',\n\n    telegram_estado:\n      canales.telegram_estado ?? 'NO_APLICA',\n\n    whatsapp_estado:\n      canales.whatsapp_estado ?? 'NO_APLICA',\n\n    gmail_error:\n      canales.gmail_error ?? '',\n\n    telegram_error:\n      canales.telegram_error ?? '',\n\n    whatsapp_error:\n      canales.whatsapp_error ?? '',\n\n    clave_idempotencia:\n      entrada.clave_idempotencia\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2912,
         -64
       ],
       "id": "bbf3b31b-4598-452e-ba1f-6069eac70355",
@@ -459,8 +548,10 @@
             "fecha": "={{ $json.fecha }}",
             "gmail_estado": "={{ $json.gmail_estado }}",
             "telegram_estado": "={{ $json.telegram_estado }}",
+            "whatsapp_estado": "={{ $json.whatsapp_estado }}",
             "gmail_error": "={{ $json.gmail_error }}",
             "telegram_error": "={{ $json.telegram_error }}",
+            "whatsapp_error": "={{ $json.whatsapp_error }}",
             "clave_idempotencia": "={{ $json.clave_idempotencia }}"
           },
           "matchingColumns": [],
@@ -556,6 +647,15 @@
               "canBeUsedToMatch": true
             },
             {
+              "id": "whatsapp_estado",
+              "displayName": "whatsapp_estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
               "id": "gmail_error",
               "displayName": "gmail_error",
               "required": false,
@@ -567,6 +667,15 @@
             {
               "id": "telegram_error",
               "displayName": "telegram_error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "whatsapp_error",
+              "displayName": "whatsapp_error",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -591,7 +700,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2912,
+        3136,
         -64
       ],
       "id": "b60fcc1b-b0b8-47cd-a30a-6ef6c2e9df82",
@@ -605,12 +714,12 @@
     },
     {
       "parameters": {
-        "jsCode": "const registro =\n  $('Preparar registro NOTIF').first().json;\n\nreturn [{\n  json: {\n    ok: true,\n\n    notificacion_id:\n      registro.notificacion_id,\n\n    usuario_id:\n      registro.usuario_id,\n\n    tipo:\n      registro.tipo,\n\n    gmail_estado:\n      registro.gmail_estado,\n\n    telegram_estado:\n      registro.telegram_estado,\n\n    gmail_error:\n      registro.gmail_error,\n\n    telegram_error:\n      registro.telegram_error,\n\n    clave_idempotencia:\n      registro.clave_idempotencia\n  }\n}];"
+        "jsCode": "const registro =\n  $('Preparar registro NOTIF').first().json;\n\nreturn [{\n  json: {\n    ok: true,\n\n    notificacion_id:\n      registro.notificacion_id,\n\n    usuario_id:\n      registro.usuario_id,\n\n    tipo:\n      registro.tipo,\n\n    gmail_estado:\n      registro.gmail_estado,\n\n    telegram_estado:\n      registro.telegram_estado,\n\n    whatsapp_estado:\n      registro.whatsapp_estado,\n\n    gmail_error:\n      registro.gmail_error,\n\n    telegram_error:\n      registro.telegram_error,\n\n    whatsapp_error:\n      registro.whatsapp_error,\n\n    clave_idempotencia:\n      registro.clave_idempotencia\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3136,
+        3360,
         -64
       ],
       "id": "788083c8-941b-48d4-b7d5-4b194dd60f9e",
@@ -722,6 +831,11 @@
             "node": "¿Telegram disponible NOTIF?",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "¿WhatsApp disponible NOTIF?",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -784,11 +898,40 @@
         ]
       ]
     },
+    "¿WhatsApp disponible NOTIF?": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp NOTIF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado WhatsApp NOTIF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp NOTIF": {
+      "main": [
+        [
+          {
+            "node": "Resultado WhatsApp NOTIF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Resultado Gmail NOTIF": {
       "main": [
         [
           {
-            "node": "Unir resultados canales",
+            "node": "Unir resultados Gmail y Telegram",
             "type": "main",
             "index": 0
           }
@@ -799,14 +942,36 @@
       "main": [
         [
           {
-            "node": "Unir resultados canales",
+            "node": "Unir resultados Gmail y Telegram",
             "type": "main",
             "index": 1
           }
         ]
       ]
     },
-    "Unir resultados canales": {
+    "Resultado WhatsApp NOTIF": {
+      "main": [
+        [
+          {
+            "node": "Unir resultados con WhatsApp",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Unir resultados Gmail y Telegram": {
+      "main": [
+        [
+          {
+            "node": "Unir resultados con WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unir resultados con WhatsApp": {
       "main": [
         [
           {

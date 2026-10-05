@@ -272,7 +272,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const recordatorio =\n  $('Preparar recordatorio').item.json;\n\nconst gmail =\n  String($json.gmail_estado ?? '')\n    .trim()\n    .toUpperCase();\n\nconst telegram =\n  String($json.telegram_estado ?? '')\n    .trim()\n    .toUpperCase();\n\nconst enviado =\n  gmail === 'ENVIADO' &&\n  telegram === 'ENVIADO';\n\nreturn {\n  json: {\n    ...recordatorio,\n\n    estado:\n      enviado ? 'ENVIADO' : 'ERROR',\n\n    fecha_envio:\n      enviado\n        ? new Date().toISOString()\n        : ''\n  }\n};"
+        "jsCode": "const recordatorio =\n  $('Preparar recordatorio').item.json;\n\nconst estados = [\n  $json.gmail_estado,\n  $json.telegram_estado,\n  $json.whatsapp_estado\n].map(estado => String(estado ?? '').trim().toUpperCase());\n\nconst enviado = estados.some(estado => estado === 'ENVIADO');\n\nreturn {\n  json: {\n    ...recordatorio,\n\n    estado:\n      enviado ? 'ENVIADO' : 'ERROR',\n\n    fecha_envio:\n      enviado\n        ? new Date().toISOString()\n        : ''\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

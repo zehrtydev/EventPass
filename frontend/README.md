@@ -1,6 +1,6 @@
 # EventPass — frontend
 
-Cliente académico de eventos con temática Comic Con. Implementado con React, Vite, JavaScript y React Router. Toda la información de usuarios, catálogo, sesiones, vinculación e inscripciones se consulta mediante los endpoints HTTP de n8n. No accede directamente a Google Sheets, Telegram, Gmail ni a modelos de IA.
+Cliente académico de eventos con temática Comic Con. Implementado con React, Vite, JavaScript y React Router. Toda la información de usuarios, catálogo, sesiones, vinculación e inscripciones se consulta mediante los endpoints HTTP de n8n. No accede directamente a Google Sheets, WhatsApp, Telegram, Gmail ni a modelos de IA.
 
 ## Ejecutar en el VPS
 
@@ -93,7 +93,7 @@ frontend/
 | `/login` | Inicio de sesión y retorno a la ruta solicitada |
 | `/cuenta` | Perfil, actualización y desactivación confirmada |
 | `/inscripciones` | Consulta, edición y cancelación confirmada |
-| `/vinculacion` | Código e instrucciones para Telegram |
+| `/vinculacion` | Código e instrucciones para WhatsApp o Telegram |
 | `/asistente` | Acceso al chat público existente |
 | Cualquier otra | Página 404 |
 
@@ -101,7 +101,7 @@ frontend/
 
 Los filtros de categoría se obtienen de `LISTADO` y consultan `FILTRO`. La búsqueda de texto, fecha y lugar filtra únicamente los eventos recibidos. La disponibilidad y la asignación de estados proceden de n8n; no se calculan cupos ni posiciones en React. Después de editar o cancelar se consulta de nuevo `LIST`.
 
-La portada muestra las inscripciones reales si existe sesión y un acceso al login en caso contrario. El panel Telegram explica las notificaciones, sin simular un buzón: no hay un endpoint público para listar notificaciones.
+La portada muestra las inscripciones reales si existe sesión y un acceso al login en caso contrario. El panel de canales explica las notificaciones, sin simular un buzón: no hay un endpoint público para listar notificaciones.
 
 Cuando `imagen_url` contiene una URL HTTPS válida, se muestra la imagen del evento. En su ausencia o si falla, se utiliza una ilustración decorativa de categoría. No se incluyen eventos, usuarios ni inscripciones ficticios en la aplicación. Las ilustraciones no representan invitados reales ni identidad oficial de convenciones.
 
@@ -115,7 +115,7 @@ Contratos inspeccionados en los JSON existentes de `n8n/` y consultas públicas 
 - WF02: login con `session` y `usuario` separados. `validate` no vuelve a entregar `session_token`; el cliente conserva el token original después de validar.
 - WF03: `codigo`, `expira_en` e instrucciones. No se dispone de un enlace público verificado al bot, por lo que no se inventa uno.
 - WF05: `eventos` para listado/filtro, `evento` para detalle y disponibilidad en la raíz para `DISPONIBILIDAD`.
-- WF06: `inscripcion` para operaciones y `inscripciones` para listado. Crear una inscripción exige Telegram vinculado; un 403 por este motivo se muestra sin cerrar la sesión.
+- WF06: `inscripcion` para operaciones y `inscripciones` para listado. Crear una inscripción exige WhatsApp o Telegram vinculado; un 403 por este motivo se muestra sin cerrar la sesión.
 - WF10: el chat responde a GET, pero devuelve `X-Frame-Options: SAMEORIGIN`. Se abre la URL pública en nueva pestaña; no se crea un segundo chatbot.
 
 El cliente maneja JSON inválido, HTTP fallido, errores de negocio, red, respuestas incompletas y timeout de 25 segundos. Las escrituras no tienen reintentos automáticos. Tras un timeout, consulta el estado antes de repetir una operación.
@@ -150,7 +150,7 @@ Referencias oficiales: [Vite](https://vite.dev/guide/), [React Router](https://r
 Con una cuenta de prueba autorizada:
 
 1. Crear cuenta, iniciar sesión, recargar y comprobar la validación.
-2. Generar código, vincularlo con el bot configurado y esperar la confirmación real en Telegram.
+2. Generar código, vincularlo con WhatsApp o el bot configurado de Telegram y esperar la confirmación real.
 3. Inscribirse en un evento con cupo y en uno lleno, verificando los estados de n8n.
 4. Editar acreditación, vaciar observaciones y cancelar con confirmación; comprobar que el listado se actualiza.
 5. Actualizar perfil y verificar conflictos de email.
@@ -162,8 +162,8 @@ Las comprobaciones reales realizadas en esta tarea son de catálogo y chat. Los 
 ## Estado de entrega
 
 - `npm run build`: correcto.
-- `npm test`: 19 pruebas correctas.
-- `node tests/browser.mjs` con el entorno indicado: 16 grupos correctos; registro, sesión, perfil, Telegram, inscripción, edición, cancelación, desactivación, errores y rutas protegidas.
+- `npm test`: pruebas unitarias y de contrato de flujos n8n.
+- `node tests/browser.mjs` con el entorno indicado: 16 grupos correctos; registro, sesión, perfil, canales, inscripción, edición, cancelación, desactivación, errores y rutas protegidas.
 - Adaptación comprobada a 320, 375, 390, 768, 1024 y 1440 píxeles, incluyendo menú móvil y preferencia de movimiento reducido.
 - Catálogo real renderizado en Chromium: cuatro eventos, búsqueda funcional y sin excepciones JavaScript.
 - `npm audit`: cero vulnerabilidades conocidas reportadas en las dependencias instaladas.
