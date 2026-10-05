@@ -11,8 +11,8 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        0,
-        -16
+        80,
+        800
       ],
       "id": "249e9d3d-4a21-4c99-8840-44076677aa5d",
       "name": "Entrada Usuarios",
@@ -20,13 +20,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body ?? $json;\n\nconst action = String(body.action ?? '')\n  .trim()\n  .toLowerCase();\n\nconst usuario_id = body.usuario_id\n  ? String(body.usuario_id).trim()\n  : null;\n\nconst nombre = body.nombre\n  ? String(body.nombre).trim()\n  : null;\n\nconst email_normalizado = body.email\n  ? String(body.email).trim().toLowerCase()\n  : body.email_normalizado\n    ? String(body.email_normalizado).trim().toLowerCase()\n    : null;\n\nconst password =\n  typeof body.password === 'string'\n    ? body.password\n    : null;\n\nconst accionesPermitidas = [\n  'create',\n  'profile',\n  'update',\n  'deactivate',\n];\n\nlet error = null;\n\nif (!accionesPermitidas.includes(action)) {\n  error = 'Acción no válida';\n}\n\nif (!error && action === 'create') {\n  if (!nombre) {\n    error = 'El nombre es obligatorio';\n  } else if (!email_normalizado) {\n    error = 'El email es obligatorio';\n  } else if (!password) {\n    error = 'La contraseña es obligatoria';\n  }\n}\n\nif (!error && action === 'profile') {\n  if (!usuario_id) {\n    error = 'usuario_id es obligatorio';\n  }\n}\n\nif (!error && action === 'update') {\n  if (!usuario_id) {\n    error = 'usuario_id es obligatorio';\n  } else if (!nombre && !email_normalizado) {\n    error = 'Debe enviarse al menos un dato para actualizar';\n  }\n}\n\nif (!error && action === 'deactivate') {\n  if (!usuario_id) {\n    error = 'usuario_id es obligatorio';\n  }\n}\n\nreturn [\n  {\n    json: {\n      route: error ? 'invalid' : action,\n      action,\n      usuario_id,\n      nombre,\n      email_normalizado,\n      password,\n      error,\n    },\n  },\n];"
+        "jsCode": "const body = $json.body ?? $json;\nconst headers = $json.headers ?? {};\n\n// --------------------\n// Acción\n// --------------------\n\nconst action = String(body.action ?? '')\n  .trim()\n  .toLowerCase();\n\n// --------------------\n// Sesión\n// --------------------\n\nlet session_token = body.session_token\n  ? String(body.session_token).trim()\n  : null;\n\nconst authorization =\n  headers.authorization ??\n  headers.Authorization ??\n  '';\n\nif (!session_token && typeof authorization === 'string') {\n  const match = authorization.match(/^Bearer\\s+(.+)$/i);\n\n  if (match) {\n    session_token = match[1].trim();\n  }\n}\n\n// --------------------\n// Datos de usuario\n// --------------------\n\nconst usuario_id = body.usuario_id\n  ? String(body.usuario_id).trim()\n  : null;\n\nconst nombre = body.nombre\n  ? String(body.nombre).trim()\n  : null;\n\nconst email_normalizado = body.email\n  ? String(body.email).trim().toLowerCase()\n  : body.email_normalizado\n    ? String(body.email_normalizado).trim().toLowerCase()\n    : null;\n\nconst password =\n  typeof body.password === 'string'\n    ? body.password\n    : null;\n\n// --------------------\n// Acciones permitidas\n// --------------------\n\nconst accionesPermitidas = [\n  'create',\n  'profile',\n  'update',\n  'deactivate',\n];\n\nlet error = null;\n\nif (!accionesPermitidas.includes(action)) {\n  error = 'Acción no válida';\n}\n\n// --------------------\n// CREATE\n// --------------------\n\nif (!error && action === 'create') {\n  if (!nombre) {\n    error = 'El nombre es obligatorio';\n  } else if (!email_normalizado) {\n    error = 'El email es obligatorio';\n  } else if (!password) {\n    error = 'La contraseña es obligatoria';\n  }\n}\n\n// --------------------\n// PROFILE\n// --------------------\n\nif (!error && action === 'profile') {\n  if (!usuario_id) {\n    error = 'usuario_id es obligatorio';\n  } else if (!session_token) {\n    error = 'El token de sesión es obligatorio';\n  }\n}\n\n// --------------------\n// UPDATE\n// --------------------\n\nif (!error && action === 'update') {\n  if (!usuario_id) {\n    error = 'usuario_id es obligatorio';\n  } else if (!session_token) {\n    error = 'El token de sesión es obligatorio';\n  } else if (!nombre && !email_normalizado) {\n    error = 'Debe enviarse al menos un dato para actualizar';\n  }\n}\n\n// --------------------\n// DEACTIVATE\n// --------------------\n\nif (!error && action === 'deactivate') {\n  if (!usuario_id) {\n    error = 'usuario_id es obligatorio';\n  } else if (!session_token) {\n    error = 'El token de sesión es obligatorio';\n  }\n}\n\n// --------------------\n// Salida normalizada\n// --------------------\n\nreturn [\n  {\n    json: {\n      route: error ? 'invalid' : action,\n      action,\n      session_token,\n      usuario_id,\n      nombre,\n      email_normalizado,\n      password,\n      error,\n    },\n  },\n];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        224,
-        -16
+        304,
+        800
       ],
       "id": "3d1c0c35-7dbd-40d8-9b58-6dfd9334a755",
       "name": "Normalizar y validar entrada"
@@ -40,8 +40,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        448,
-        -64
+        528,
+        752
       ],
       "id": "22186676-5a47-43c9-b3fa-7469d35796a3",
       "name": "Switch - Acción"
@@ -75,8 +75,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        672,
-        -448
+        752,
+        544
       ],
       "id": "8e349a67-847f-4e6b-b676-3519143fe2b2",
       "name": "Buscar email existente",
@@ -116,8 +116,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        896,
-        -448
+        976,
+        544
       ],
       "id": "48585613-eeb9-4632-a457-264c5c5579e1",
       "name": "¿Email ya existe?"
@@ -133,8 +133,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2016,
-        -448
+        3664,
+        512
       ],
       "id": "f5f754f4-b6b0-45a9-a2b3-4eb18b0dbec2",
       "name": "Respuesta - Email duplicado"
@@ -146,8 +146,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1120,
-        -256
+        1200,
+        608
       ],
       "id": "790a7922-9d68-49bd-94da-d28089f4c284",
       "name": "Generar usuario y credenciales"
@@ -264,8 +264,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1344,
-        -256
+        1424,
+        608
       ],
       "id": "6c74ced9-458f-434d-a7b2-6749dcf46727",
       "name": "Crear usuario",
@@ -283,8 +283,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1568,
-        -256
+        1648,
+        608
       ],
       "id": "ac61e050-c71d-462b-a678-4b28bede1970",
       "name": "Preparar auditoría - Usuario creado"
@@ -381,8 +381,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1792,
-        -256
+        1872,
+        608
       ],
       "id": "4a923916-0a0b-4f8c-a2d4-f885419cdd3a",
       "name": "Registrar auditoría usuario",
@@ -404,8 +404,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2016,
-        -256
+        2096,
+        608
       ],
       "id": "b341b5eb-9032-4ea3-b868-a19611f4c169",
       "name": "Respuesta - Usuario creado"
@@ -439,8 +439,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        672,
-        -64
+        2320,
+        656
       ],
       "id": "7d2403b6-b58f-4e80-9ec8-5498fc7d7259",
       "name": "Buscar usuario por ID",
@@ -480,8 +480,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        896,
-        -64
+        2544,
+        656
       ],
       "id": "02ba535e-c122-4f07-b2d5-5b4bc6da9468",
       "name": "¿Usuario existe?"
@@ -497,8 +497,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        1120,
-        128
+        2768,
+        896
       ],
       "id": "b4a10617-d12d-435f-a030-05fd07451232",
       "name": "Respuesta - Usuario no encontrado"
@@ -514,8 +514,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        1120,
-        -64
+        2768,
+        608
       ],
       "id": "9c6dfa59-9f21-4462-8b72-e5d0060febc4",
       "name": "Respuesta - Perfil"
@@ -549,8 +549,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        672,
-        176
+        2320,
+        928
       ],
       "id": "8619d16f-5345-49eb-8f0d-c23a464edc1a",
       "name": "Buscar usuario para actualizar",
@@ -590,8 +590,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        896,
-        176
+        2544,
+        928
       ],
       "id": "80e51cdb-e266-4882-a47d-243fc7a07fce",
       "name": "¿Usuario a actualizar existe?"
@@ -603,8 +603,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1120,
-        320
+        2768,
+        1088
       ],
       "id": "0812d903-bb02-4c7f-8269-7203c4504aa2",
       "name": "Preparar actualización"
@@ -637,8 +637,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        1344,
-        320
+        2992,
+        1088
       ],
       "id": "c409a2b9-0339-4653-94f0-7682e0f3c699",
       "name": "¿Cambia el email?"
@@ -672,8 +672,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1568,
-        128
+        3216,
+        832
       ],
       "id": "17e86d18-e4bd-44f2-ad5f-884e0c61d95a",
       "name": "Buscar nuevo email",
@@ -713,8 +713,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        1792,
-        128
+        3440,
+        832
       ],
       "id": "63b9d1da-ef4f-407c-a26a-8eee636fc9cd",
       "name": "¿Nuevo email ocupado?"
@@ -845,8 +845,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2016,
-        400
+        3664,
+        1168
       ],
       "id": "7edcf73c-6e4e-41fd-9da8-8b56b08b763d",
       "name": "Actualizar usuario",
@@ -864,8 +864,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2240,
-        400
+        3888,
+        1168
       ],
       "id": "8005cb82-c4aa-46e5-aea0-39ce63f48979",
       "name": "Preparar auditoría - Usuario actualizado"
@@ -962,8 +962,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2464,
-        400
+        4112,
+        1168
       ],
       "id": "3aaa32aa-1c12-46b7-95d2-5097d6160f35",
       "name": "Registrar auditoría actualización",
@@ -985,8 +985,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2688,
-        400
+        4336,
+        1168
       ],
       "id": "db4f27c9-80ea-4d5e-998f-17a7a3a334e9",
       "name": "Respuesta - Usuario actualizado"
@@ -1020,8 +1020,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        672,
-        560
+        2320,
+        1312
       ],
       "id": "4eb42c0f-b19d-4291-97e8-da5c9a04723d",
       "name": "Buscar usuario para desactivar",
@@ -1061,8 +1061,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        896,
-        560
+        2544,
+        1312
       ],
       "id": "73f0fffc-76b1-47ca-b3f1-17326e913834",
       "name": "¿Usuario a desactivar existe?"
@@ -1095,8 +1095,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        1120,
-        608
+        2768,
+        1376
       ],
       "id": "06746920-0629-4009-b175-0a86a6c7e7a0",
       "name": "¿Ya está inactivo?"
@@ -1108,8 +1108,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1344,
-        704
+        2992,
+        1472
       ],
       "id": "e1418603-6380-47d1-99b3-282dec6e0971",
       "name": "Preparar desactivación"
@@ -1125,8 +1125,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        1344,
-        512
+        2992,
+        1280
       ],
       "id": "859ba5ea-50c5-4baa-ab9d-b9b6b1f8d945",
       "name": "Respuesta - Ya estaba inactivo"
@@ -1257,8 +1257,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1568,
-        704
+        3216,
+        1472
       ],
       "id": "e2bbcb9a-a813-4168-91be-a326bf24e52c",
       "name": "Desactivar usuario",
@@ -1276,8 +1276,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1792,
-        704
+        3440,
+        1472
       ],
       "id": "0cdbe4fb-28a7-4981-a5e7-1ba017bd187b",
       "name": "Preparar auditoría - Usuario desactivado"
@@ -1293,8 +1293,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2240,
-        704
+        3888,
+        1472
       ],
       "id": "c1096bdc-158b-4eb9-8d61-4defec11e1fe",
       "name": "Respuesta - Usuario desactivado"
@@ -1391,8 +1391,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2016,
-        704
+        3664,
+        1472
       ],
       "id": "c590aa8c-c505-4280-aa10-bc5a54645464",
       "name": "Registrar auditoría desactivación",
@@ -1402,6 +1402,292 @@
           "name": "Google Sheets account"
         }
       }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1rZAkhuoyuQfh2YxJrvRHvEcd2eX7S3HnMcaQMVvAWYk",
+          "mode": "list",
+          "cachedResultName": "EP02_Sesiones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rZAkhuoyuQfh2YxJrvRHvEcd2eX7S3HnMcaQMVvAWYk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sesiones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rZAkhuoyuQfh2YxJrvRHvEcd2eX7S3HnMcaQMVvAWYk/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "session_token",
+              "lookupValue": "={{ $('Normalizar y validar entrada').first().json.session_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        752,
+        1024
+      ],
+      "id": "f87b4fb5-2de5-46b6-b32f-c3b4a08238de",
+      "name": "Buscar sesión WF01",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const entrada =\n  $('Normalizar y validar entrada').first().json;\n\nconst sesion = $json ?? {};\n\nconst token = String(\n  entrada.session_token ?? ''\n).trim();\n\nconst usuarioSolicitado = String(\n  entrada.usuario_id ?? ''\n).trim();\n\nconst usuarioSesion = String(\n  sesion.usuario_id ?? ''\n).trim();\n\nconst estadoSesion = String(\n  sesion.estado ?? ''\n).trim().toUpperCase();\n\nconst expiraEn = sesion.expira_en\n  ? new Date(sesion.expira_en)\n  : null;\n\nlet session_valida = true;\nlet auth_error = null;\nlet auth_status_http = 401;\n\n// Token obligatorio\nif (!token) {\n  session_valida = false;\n  auth_error = 'El token de sesión es obligatorio';\n}\n\n// El token debe existir en EP02\nelse if (!sesion.session_id) {\n  session_valida = false;\n  auth_error = 'La sesión no existe o ya no es válida';\n}\n\n// La sesión debe estar ACTIVA\nelse if (estadoSesion !== 'ACTIVA') {\n  session_valida = false;\n  auth_error = 'La sesión no está activa';\n}\n\n// La sesión no puede estar expirada\nelse if (\n  !expiraEn ||\n  Number.isNaN(expiraEn.getTime()) ||\n  expiraEn.getTime() <= Date.now()\n) {\n  session_valida = false;\n  auth_error = 'La sesión ha expirado';\n}\n\n// La sesión debe pertenecer al usuario solicitado\nelse if (\n  !usuarioSolicitado ||\n  usuarioSesion !== usuarioSolicitado\n) {\n  session_valida = false;\n  auth_error =\n    'No tienes autorización para acceder a este usuario';\n  auth_status_http = 403;\n}\n\nreturn [\n  {\n    json: {\n      ...entrada,\n\n      session_valida,\n\n      session_id:\n        sesion.session_id ?? null,\n\n      session_usuario_id:\n        usuarioSesion || null,\n\n      session_estado:\n        estadoSesion || null,\n\n      session_expira_en:\n        sesion.expira_en ?? null,\n\n      auth_error,\n\n      auth_status_http:\n        session_valida ? 200 : auth_status_http,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        1024
+      ],
+      "id": "9701e9ce-80fa-4706-a868-c4b0b7c366e7",
+      "name": "Evaluar sesión WF01"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f2abc1aa-68ac-488c-ac07-c51e489090e8",
+              "leftValue": "={{ $json.session_valida }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1200,
+        1024
+      ],
+      "id": "7fb95f6f-d483-411b-8394-25d3ef9441c3",
+      "name": "¿Sesión válida WF01?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    ok: false,\n    error: $json.auth_error ?? 'Sesión inválida'\n  }\n}}",
+        "options": {
+          "responseCode": "={{ $json.auth_status_http ?? 401 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2096,
+        1168
+      ],
+      "id": "52cd9754-a6e3-48d4-853d-bb6b8400b385",
+      "name": "Respuesta - Sesión inválida WF01"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "profile",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "8a6bbd64-0834-4208-b412-faf8da20a6bc"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "profile"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "5c442ecd-d566-4144-b2ff-30c492f5a08c",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "update",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "update"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e450aa9c-dff9-4756-9de4-6c315e65d840",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "deactivate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "deactivate"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2096,
+        944
+      ],
+      "id": "b5d4fff3-23df-4bee-8e7e-12f8ee8a3152",
+      "name": "Switch - Acción autenticada"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1IFoOuTwutzA2crs2oVn6BkLRnobY19aG7R-eY06oHZY",
+          "mode": "list",
+          "cachedResultName": "EP01_Usuarios",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1IFoOuTwutzA2crs2oVn6BkLRnobY19aG7R-eY06oHZY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Usuarios",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1IFoOuTwutzA2crs2oVn6BkLRnobY19aG7R-eY06oHZY/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "usuario_id",
+              "lookupValue": "={{ $json.session_usuario_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1424,
+        960
+      ],
+      "id": "707cfce5-b1a2-4e5a-a9b9-bcc8c799e9e2",
+      "name": "Buscar usuario de sesión WF01",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const auth =\n  $('Evaluar sesión WF01').first().json;\n\nconst usuario = $json ?? {};\n\nconst estadoUsuario = String(\n  usuario.estado ?? ''\n).trim().toUpperCase();\n\nlet usuario_activo = true;\n\nlet auth_error =\n  auth.auth_error ?? null;\n\nlet auth_status_http =\n  auth.auth_status_http ?? 200;\n\n// El usuario asociado a la sesión debe existir\nif (!usuario.usuario_id) {\n  usuario_activo = false;\n  auth_error =\n    'La cuenta asociada a la sesión no existe';\n  auth_status_http = 403;\n}\n\n// El usuario asociado debe seguir ACTIVO\nelse if (estadoUsuario !== 'ACTIVO') {\n  usuario_activo = false;\n  auth_error =\n    'La cuenta asociada a la sesión está inactiva';\n  auth_status_http = 403;\n}\n\nreturn [\n  {\n    json: {\n      ...auth,\n      usuario_activo,\n      usuario_estado:\n        estadoUsuario || null,\n      auth_error,\n      auth_status_http,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        960
+      ],
+      "id": "9b33187b-440b-4a60-ac42-a1e5aeeb9595",
+      "name": "Evaluar usuario activo WF01"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c4db2b07-2004-45e0-a779-a9594024f534",
+              "leftValue": "={{ $json.usuario_activo }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1872,
+        960
+      ],
+      "id": "8abf4c0e-6aa4-41af-8ca4-55465961d508",
+      "name": "¿Usuario activo WF01?"
     }
   ],
   "pinData": {},
@@ -1439,21 +1725,21 @@
         ],
         [
           {
-            "node": "Buscar usuario por ID",
+            "node": "Buscar sesión WF01",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Buscar usuario para actualizar",
+            "node": "Buscar sesión WF01",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Buscar usuario para desactivar",
+            "node": "Buscar sesión WF01",
             "type": "main",
             "index": 0
           }
@@ -1772,6 +2058,111 @@
           }
         ]
       ]
+    },
+    "Buscar sesión WF01": {
+      "main": [
+        [
+          {
+            "node": "Evaluar sesión WF01",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar sesión WF01": {
+      "main": [
+        [
+          {
+            "node": "¿Sesión válida WF01?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Sesión válida WF01?": {
+      "main": [
+        [
+          {
+            "node": "Buscar usuario de sesión WF01",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta - Sesión inválida WF01",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Acción autenticada": {
+      "main": [
+        [
+          {
+            "node": "Buscar usuario por ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar usuario para actualizar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar usuario para desactivar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar usuario de sesión WF01": {
+      "main": [
+        [
+          {
+            "node": "Evaluar usuario activo WF01",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar usuario activo WF01": {
+      "main": [
+        [
+          {
+            "node": "¿Usuario activo WF01?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Usuario activo WF01?": {
+      "main": [
+        [
+          {
+            "node": "Switch - Acción autenticada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta - Sesión inválida WF01",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -1779,12 +2170,19 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "416221ac-8272-4fc7-ae7e-4c2316905db2",
+  "versionId": "6df0acfb-b3d6-40d6-801e-8fc1f8e517d2",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "e18f7f45af7b762d17bca0cb617e7a822a32b40f721449038e7b3ba0ac7130a4"
   },
   "nodeGroups": [],
   "id": "s8GaJpY1aSZDrJ8k",
-  "tags": []
+  "tags": [
+    {
+      "updatedAt": "2026-09-27T17:27:03.143Z",
+      "createdAt": "2026-09-27T17:27:03.143Z",
+      "id": "PXWHsnEwf5WQ00SM",
+      "name": "sheets"
+    }
+  ]
 }
