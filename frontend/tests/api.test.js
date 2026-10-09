@@ -1,9 +1,28 @@
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { ApiError, authRequest, catalogoRequest, checkinRequest, inscripcionesRequest, request, requireList, requireObject, usuariosRequest, vinculacionRequest } from '../src/services/api.js';
+import { ApiError, authRequest, catalogoRequest, checkinRequest, inscripcionesRequest, request, requireList, requireObject, telegramStatusRequest, usuariosRequest, vinculacionRequest } from '../src/services/api.js';
 
 const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });
+
+test('El estado de Telegram consulta el endpoint de lectura con la sesión', async () => {
+  for (const vinculado of [true, false]) {
+    globalThis.fetch = async (url, options) => {
+      assert.ok(url.endsWith('/webhook/eventpass/vinculacion/estado'));
+      assert.equal(options.method, 'POST');
+      assert.deepEqual(JSON.parse(options.body), { session_token: 'test-only-token' });
+      return Response.json({ ok: true, canal: 'TELEGRAM', vinculado });
+    };
+    assert.equal((await telegramStatusRequest({ token: 'test-only-token' })).vinculado, vinculado);
+  }
+});
+
+test('Un estado ausente o inválido de Telegram no se interpreta como cuenta sin vincular', async () => {
+  for (const vinculado of [undefined, null, 'false', 0]) {
+    globalThis.fetch = async () => Response.json({ ok: true, vinculado });
+    await assert.rejects(telegramStatusRequest({ token: 'test-only-token' }), /confirmar el estado/);
+  }
+});
 
 test('Los cinco clientes envían POST exclusivamente a los endpoints de n8n', async () => {
   const clients = [[usuariosRequest, 'usuarios'], [authRequest, 'auth'], [catalogoRequest, 'catalogo'], [vinculacionRequest, 'vinculacion/codigo'], [inscripcionesRequest, 'inscripciones']];

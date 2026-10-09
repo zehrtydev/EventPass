@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { TelegramProvider } from './contexts/TelegramContext';
 import App from './App';
 import './styles/global.css';
 
@@ -14,4 +15,4 @@ class ErrorBoundary extends Component {
   }
 }
 
-createRoot(document.getElementById('root')).render(<ErrorBoundary><BrowserRouter><AuthProvider><App /></AuthProvider></BrowserRouter></ErrorBoundary>);
+createRoot(document.getElementById('root')).render(<ErrorBoundary><BrowserRouter><AuthProvider><TelegramProvider><App /></TelegramProvider></AuthProvider></BrowserRouter></ErrorBoundary>);

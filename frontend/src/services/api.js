@@ -57,6 +57,11 @@ export const usuariosRequest = (data, options) => request('usuarios', data, opti
 export const authRequest = (data, options) => request('auth', data, options);
 export const catalogoRequest = (data, options) => request('catalogo', data, options);
 export const vinculacionRequest = (data, options) => request('vinculacion/codigo', data, options);
+export async function telegramStatusRequest(options) {
+  const data = await request('vinculacion/estado', {}, options);
+  if (typeof data.vinculado !== 'boolean') throw new ApiError('No pudimos confirmar el estado de Telegram. Inténtalo de nuevo.');
+  return data;
+}
 export const inscripcionesRequest = (data, options) => request('inscripciones', data, options);
 
 export async function checkinRequest(data, options) {

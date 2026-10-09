@@ -26,6 +26,7 @@ try {
   const session = { session_token: 'browser-test-token', session_id: 'ses_test', expira_en: '2026-11-30T20:00:00Z' };
   let registrations = [];
   let linked = false;
+  let telegramStatusError = false;
   let expired = false;
   let catalogError = false;
   let catalogEmpty = false;
@@ -61,6 +62,11 @@ try {
       if (body.action === 'update') user = { ...user, nombre: body.nombre, email: body.email };
       if (body.action === 'deactivate') return reply({ ok: true, message: 'Cuenta desactivada' });
       return reply({ ok: true, usuario: user });
+    }
+    if (endpoint === 'vinculacion/estado') {
+      if (expired) return reply({ ok: false, error: 'Sesión inválida o expirada' }, 401);
+      if (telegramStatusError) return reply({ ok: false, error: 'No se pudo consultar Telegram' }, 503);
+      return reply({ ok: true, canal: 'TELEGRAM', vinculado: linked });
     }
     if (endpoint === 'vinculacion/codigo') return reply({ ok: true, codigo: 'TEST42', expira_en: '2026-11-15T20:00:00Z', message: 'Código generado' });
     if (endpoint === 'checkin') {
@@ -183,11 +189,38 @@ try {
   ok('Disponibilidad real del contrato y 403 Telegram sin cerrar sesión');
 
   await page.goto(base + '/vinculacion');
+  await page.getByRole('button', { name: 'Generar código de vinculación' }).waitFor();
+  telegramStatusError = true;
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.getByRole('alert').filter({ hasText: 'No se pudo consultar Telegram' }).waitFor();
+  assert.equal(await page.getByRole('button', { name: 'Generar código de vinculación' }).count(), 0);
+  assert.equal(await page.getByRole('link', { name: 'Vincular Telegram', exact: true }).count(), 0);
+  telegramStatusError = false;
+  await page.getByRole('button', { name: 'Volver a intentar' }).click();
   await page.getByRole('button', { name: 'Generar código de vinculación' }).click();
   await page.locator('.generated-code strong').filter({ hasText: 'TEST42' }).waitFor();
   assert.equal(await page.locator('.command code').textContent(), '/vincular TEST42');
+  assert.equal(await page.getByRole('heading', { name: 'Telegram conectado' }).count(), 0);
+  const generatedCodes = actions.filter(action => action.endpoint === 'vinculacion/codigo').length;
   linked = true;
-  ok('Generación y presentación del código Telegram sin simular vinculación');
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.getByRole('heading', { name: 'Telegram conectado' }).waitFor();
+  assert.equal(await page.locator('.generated-code').count(), 0);
+  assert.equal(await page.getByRole('button', { name: /Generar.*código/ }).count(), 0);
+  for (const path of ['/', '/cuenta', '/vinculacion']) {
+    await page.goto(base + path);
+    await page.getByRole('heading', { name: 'Telegram conectado', exact: true }).waitFor();
+    assert.equal(await page.getByRole('link', { name: 'Vincular Telegram', exact: true }).count(), 0);
+  }
+  await page.reload();
+  await page.getByRole('heading', { name: 'Telegram conectado' }).waitFor();
+  assert.equal(actions.filter(action => action.endpoint === 'vinculacion/codigo').length, generatedCodes);
+  await page.screenshot({ path: `${output}/telegram-linked-desktop.png`, fullPage: true });
+  await page.setViewportSize({ width: 320, height: 812 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  await page.screenshot({ path: `${output}/telegram-linked-mobile.png`, fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  ok('Telegram: estado remoto, error y reintento, retorno desde el bot, recarga y accesos actualizados sin generar códigos adicionales');
 
   for (const [id, state] of [['evt_test_anime', 'CONFIRMADA'], ['evt_test_gaming', 'LISTA_ESPERA']]) {
     await page.goto(base + '/eventos/' + id);

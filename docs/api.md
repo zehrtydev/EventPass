@@ -1,4 +1,6 @@
-# API de check-in digital (WF11)
+# API de EventPass
+
+## Check-in digital (WF11)
 
 Contrato verificado contra `n8n/WF11_checkin_digital.json` el 9 de octubre de 2026. El estado remoto y CORS del webhook no se comprobaron mediante escrituras reales.
 
@@ -42,3 +44,21 @@ La comparación del evento debe leer `Buscar inscripción.evento_id`. Comparar `
 ## Exportaciones locales
 
 Los once libros en `docs/EventPass/` contienen datos, incluidos campos de credenciales, sesiones e información personal. Están excluidos de Git mediante `.gitignore` y se conservan sin modificaciones. Para compartir estructura, utilizar esquemas documentados o fixtures sintéticos, nunca esas exportaciones.
+
+## Estado de Telegram (WF03)
+
+`POST /webhook/eventpass/vinculacion/estado` con `{ "session_token": "TOKEN_DE_EJEMPLO_NO_REAL" }`. También acepta `Authorization: Bearer ...` mediante el validador existente de WF03.
+
+Respuesta 200:
+
+```json
+{ "ok": true, "canal": "TELEGRAM", "vinculado": true }
+```
+
+`vinculado` es `false` cuando no hay una fila `ACTIVA` del usuario autenticado con canal `TELEGRAM` y `chat_id` no vacío. WhatsApp, registros inactivos y filas de otros usuarios no cuentan. Se consultan todas las coincidencias del usuario (`returnFirstMatch: false`), incluyendo el caso de una fila antigua inactiva seguida de otra activa. La opción corresponde al nodo Google Sheets 4.7 del export; [definición oficial de la operación de lectura](https://github.com/n8n-io/n8n/blob/master/packages/nodes-base/nodes/Google/Sheet/v2/actions/sheet/read.operation.ts).
+
+La consulta reutiliza la validación de sesión activa y vigente y de usuario activo. Devuelve 401 por sesión inválida y 403 por usuario inactivo. El usuario se obtiene de la sesión, nunca de un `usuario_id` enviado por el cliente. Solo lee Sheets: no genera códigos, no cambia vinculaciones ni envía mensajes. No devuelve `chat_id`, nombres ni credenciales.
+
+La generación existente en `/vinculacion/codigo` y los flujos de recepción de Telegram/WhatsApp conservan sus rutas. Se agregó una bifurcación después de validar el usuario para dirigir únicamente el nuevo webhook hacia la consulta.
+
+Es necesario publicar el WF03 actualizado antes del frontend. Esta corrección modifica el export de desarrollo; no publica ni cambia el workflow remoto. Las pruebas locales cubren estados vinculados y no vinculados, ausencia de datos, separación de canales/usuarios, autorización y conservación de la ruta de generación.

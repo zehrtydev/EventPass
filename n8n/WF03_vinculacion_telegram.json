@@ -4,6 +4,144 @@
     {
       "parameters": {
         "httpMethod": "POST",
+        "path": "eventpass/vinculacion/estado",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -224,
+        -480
+      ],
+      "id": "telegram-status-webhook",
+      "name": "Consultar estado Telegram",
+      "webhookId": "eventpass-telegram-status"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, consultar_estado: true } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -480
+      ],
+      "id": "telegram-status-input",
+      "name": "Marcar consulta de estado"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "telegram-status-route",
+              "leftValue": "={{ $('Extraer token de sesión').first().json.consultar_estado }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1328,
+        -320
+      ],
+      "id": "telegram-status-condition",
+      "name": "¿Consultar estado Telegram?"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os",
+          "mode": "list",
+          "cachedResultName": "EP03_Telegram",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 831824347,
+          "mode": "list",
+          "cachedResultName": "Vinculaciones",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nxBigB0mOitSlwamsu287NlY5b_ioDSs4g4B7SFa9os/edit#gid=831824347"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "usuario_id",
+              "lookupValue": "={{ $('Buscar usuario de sesión').first().json.usuario_id }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": false
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1552,
+        -480
+      ],
+      "id": "telegram-status-read",
+      "name": "Buscar vinculaciones de usuario",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HsazcOdS0RccKxQf",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const usuarioId = String($('Buscar usuario de sesión').first().json.usuario_id);\n\nconst vinculado = $input.all().some(({ json: row }) =>\n  String(row.usuario_id ?? '') === usuarioId &&\n  String(row.estado ?? '').trim().toUpperCase() === 'ACTIVA' &&\n  String(row.canal ?? '').trim().toUpperCase() === 'TELEGRAM' &&\n  Boolean(String(row.chat_id ?? '').trim())\n);\n\n// Solo se expone el estado; nunca el chat_id ni las credenciales.\nreturn [{ json: { ok: true, canal: 'TELEGRAM', vinculado } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1776,
+        -480
+      ],
+      "id": "telegram-status-result",
+      "name": "Preparar estado Telegram"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2000,
+        -480
+      ],
+      "id": "telegram-status-response",
+      "name": "Respuesta - Estado Telegram"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
         "path": "eventpass/vinculacion/codigo",
         "responseMode": "responseNode",
         "options": {}
@@ -20,7 +158,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body ?? {};\nconst headers = $json.headers ?? {};\n\nlet session_token = body.session_token\n  ? String(body.session_token).trim()\n  : null;\n\nconst authorization =\n  headers.authorization ??\n  headers.Authorization ??\n  '';\n\nif (!session_token && typeof authorization === 'string') {\n  const match = authorization.match(/^Bearer\\s+(.+)$/i);\n\n  if (match) {\n    session_token = match[1].trim();\n  }\n}\n\nreturn [{\n  json: {\n    session_token,\n    error: session_token\n      ? null\n      : 'El token de sesión es obligatorio'\n  }\n}];"
+        "jsCode": "const body = $json.body ?? {};\nconst headers = $json.headers ?? {};\n\nlet session_token = body.session_token\n  ? String(body.session_token).trim()\n  : null;\n\nconst authorization =\n  headers.authorization ??\n  headers.Authorization ??\n  '';\n\nif (!session_token && typeof authorization === 'string') {\n  const match = authorization.match(/^Bearer\\s+(.+)$/i);\n\n  if (match) {\n    session_token = match[1].trim();\n  }\n}\n\nreturn [{\n  json: {\n    session_token,\n    consultar_estado: $json.consultar_estado === true,\n    error: session_token\n      ? null\n      : 'El token de sesión es obligatorio'\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1617,6 +1755,68 @@
   ],
   "pinData": {},
   "connections": {
+    "Consultar estado Telegram": {
+      "main": [
+        [
+          {
+            "node": "Marcar consulta de estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar consulta de estado": {
+      "main": [
+        [
+          {
+            "node": "Extraer token de sesión",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Consultar estado Telegram?": {
+      "main": [
+        [
+          {
+            "node": "Buscar vinculaciones de usuario",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generar código de vinculación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar vinculaciones de usuario": {
+      "main": [
+        [
+          {
+            "node": "Preparar estado Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar estado Telegram": {
+      "main": [
+        [
+          {
+            "node": "Respuesta - Estado Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Solicitar código de vinculación": {
       "main": [
         [
@@ -1683,7 +1883,7 @@
       "main": [
         [
           {
-            "node": "Generar código de vinculación",
+            "node": "¿Consultar estado Telegram?",
             "type": "main",
             "index": 0
           }

@@ -73,6 +73,7 @@ frontend/
     assets/                  # Ilustraciones originales decorativas
     components/              # Navegación, tarjetas, modal y estados reutilizables
     contexts/AuthContext.jsx # Sesión, validación, perfil mínimo y cierre
+    contexts/TelegramContext.jsx # Estado remoto de vinculación, compartido por las pantallas
     hooks/useRequest.js      # Consultas cancelables y estados de operaciones
     pages/                   # Pantallas públicas y protegidas
     services/api.js          # Único cliente HTTP
@@ -94,7 +95,7 @@ frontend/
 | `/cuenta` | Perfil, actualización y desactivación confirmada |
 | `/inscripciones` | Consulta, edición y cancelación confirmada |
 | `/checkin` | Registro de ingreso por identificadores de evento e inscripción |
-| `/vinculacion` | Código e instrucciones para Telegram |
+| `/vinculacion` | Estado real de Telegram; código e instrucciones solo si no está vinculado |
 | `/asistente` | Acceso al chat público existente |
 | Cualquier otra | Página 404 |
 
@@ -106,6 +107,10 @@ Los filtros de categoría se obtienen de `LISTADO` y consultan `FILTRO`. La bús
 
 La portada muestra las inscripciones reales si existe sesión y un acceso al login en caso contrario. El panel Telegram explica las notificaciones, sin simular un buzón: no hay un endpoint público para listar notificaciones.
 
+La vinculación se consulta con `POST /webhook/eventpass/vinculacion/estado` después de validar la sesión, al cambiar de ruta y al regresar a la pestaña. Menú, portada y perfil muestran «Telegram vinculado» solo si el servidor confirma `vinculado: true`; la pantalla deja de ofrecer códigos e instrucciones. Mientras haya un código pendiente y vigente se consulta cada 10 segundos, únicamente con la página visible y sin peticiones solapadas. También existe «Comprobar vinculación». Los errores detienen la consulta periódica y permiten reintentar. El estado no se persiste en el navegador ni se deduce de haber generado un código.
+
+**Requisito de publicación:** actualizar y publicar el export de WF03 con el nuevo webhook de consulta antes de publicar este frontend. Si ese endpoint no está disponible, se muestra un error y no se asume que la cuenta está sin vincular. Los cambios del JSON local no modifican la instancia remota de n8n.
+
 Cuando `imagen_url` contiene una URL HTTPS válida, se muestra la imagen del evento. En su ausencia o si falla, se utiliza una ilustración decorativa de categoría. No se incluyen eventos, usuarios ni inscripciones ficticios en la aplicación. Las ilustraciones no representan invitados reales ni identidad oficial de convenciones.
 
 Las ilustraciones se sirven en WebP y se conservan los PNG originales como fuentes editables. Las tipografías Barlow se sirven desde los assets locales, con sus licencias OFL; la interfaz no depende de peticiones a Google Fonts.
@@ -116,7 +121,7 @@ Contratos inspeccionados en los JSON existentes de `n8n/` y consultas públicas 
 
 - WF01: respuestas de perfil y actualización en `usuario`.
 - WF02: login con `session` y `usuario` separados. `validate` no vuelve a entregar `session_token`; el cliente conserva el token original después de validar.
-- WF03: `codigo`, `expira_en` e instrucciones. No se dispone de un enlace público verificado al bot, por lo que no se inventa uno.
+- WF03: `codigo`, `expira_en` e instrucciones; el nuevo endpoint de estado devuelve `vinculado` booleano y `canal: TELEGRAM`. Solo cuenta una vinculación `ACTIVA`, del usuario de la sesión, con canal `TELEGRAM` y `chat_id` presente. Una vinculación de WhatsApp no confirma Telegram. No se dispone de un enlace público verificado al bot, por lo que no se inventa uno.
 - WF05: `eventos` para listado/filtro, `evento` para detalle y disponibilidad en la raíz para `DISPONIBILIDAD`.
 - WF06: `inscripcion` para operaciones y `inscripciones` para listado. Crear una inscripción exige Telegram vinculado; un 403 por este motivo se muestra sin cerrar la sesión.
 - WF10: el chat responde a GET, pero devuelve `X-Frame-Options: SAMEORIGIN`. Se abre la URL pública en nueva pestaña; no se crea un segundo chatbot.
