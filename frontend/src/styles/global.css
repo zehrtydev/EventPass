@@ -194,6 +194,14 @@ select option { color: #eef1ff; background: #11192b; }
 .site-footer > span { text-align: right; }
 .page { max-width: 1296px; width: 90%; margin: 0 auto; padding: 48px 0 70px; }
 .page.narrow { max-width: 700px; }
+.checkin-page h1 { font-size: 36px; letter-spacing: 0; }
+.checkin-page h2 { font-size: 20px; letter-spacing: 0; margin: 0 0 6px; }
+.checkin-page .message { border-radius: 8px; }
+.checkin-page .message p { margin: 0; }
+.checkin-page .checkin-error-title { margin-top: 24px; }
+.checkin-result dl { display: grid; gap: 16px; margin: 24px 0; }
+.checkin-result dt { color: var(--muted); font-size: 14px; }
+.checkin-result dd { margin: 6px 0 0; overflow-wrap: anywhere; }
 .page-heading { margin: 0 0 35px; }
 .page-heading .eyebrow { margin-bottom: 13px; }
 .page-heading > p { margin-top: 14px; color: var(--muted); }

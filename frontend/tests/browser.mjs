@@ -30,6 +30,7 @@ try {
   let catalogError = false;
   let catalogEmpty = false;
   let validationNetworkError = false;
+  let checkinNetworkError = false;
   const actions = [];
   await page.route('**/webhook/eventpass/**', async route => {
     const endpoint = new URL(route.request().url()).pathname.split('/eventpass/')[1];
@@ -62,6 +63,16 @@ try {
       return reply({ ok: true, usuario: user });
     }
     if (endpoint === 'vinculacion/codigo') return reply({ ok: true, codigo: 'TEST42', expira_en: '2026-11-15T20:00:00Z', message: 'Código generado' });
+    if (endpoint === 'checkin') {
+      if (checkinNetworkError) return route.abort('failed');
+      await new Promise(resolve => setTimeout(resolve, 150));
+      const item = registrations.find(item => item.inscripcion_id === body.inscripcion_id);
+      if (!item || item.evento_id !== body.evento_id) return reply({ ok: false, resultado: 'RECHAZADO', mensaje: 'La inscripción no corresponde al evento' }, 400);
+      if (item.estado === 'ASISTIO') return reply({ ok: false, resultado: 'DUPLICADO', mensaje: 'El ingreso ya había sido registrado.' }, 409);
+      if (item.estado !== 'CONFIRMADA') return reply({ ok: false, resultado: 'RECHAZADO', mensaje: 'La inscripción no está confirmada' }, 400);
+      item.estado = 'ASISTIO';
+      return reply({ ok: true, resultado: 'EXITOSO', checkin_id: 'chk_browser_test', inscripcion_id: item.inscripcion_id, evento_id: item.evento_id, fecha_checkin: '2026-10-09T19:00:00Z', mensaje: 'Check-in realizado correctamente.' });
+    }
     if (endpoint === 'inscripciones') {
       if (expired) return reply({ ok: false, error: 'Sesión inválida o expirada' }, 401);
       if (body.action === 'LIST') return reply({ ok: true, inscripciones: registrations });
@@ -107,11 +118,11 @@ try {
   ok('Responsive en seis tamaños, menú móvil y movimiento reducido');
 
   await page.setViewportSize({ width: 1440, height: 1000 });
-  for (const path of ['/cuenta', '/inscripciones', '/vinculacion']) {
+  for (const path of ['/cuenta', '/inscripciones', '/vinculacion', '/checkin']) {
     await page.goto(base + path);
     await page.waitForURL('**/login');
   }
-  ok('Las tres rutas protegidas redirigen al login');
+  ok('Las cuatro rutas protegidas redirigen al login');
 
   await page.goto(base + '/registro');
   await page.getByLabel('Nombre', { exact: true }).fill('Persona de prueba');
@@ -209,7 +220,56 @@ try {
   assert.equal(registrations.length, 2);
   ok('Editar, vaciar observaciones, confirmar cancelación y volver a consultar LIST');
 
-  for (const path of ['/cuenta', '/inscripciones', '/vinculacion', '/eventos/evt_test_anime', '/asistente']) {
+  registrations.push({ inscripcion_id: 'ins_checkin', evento_id: 'evt_test_anime', nombre_acreditacion: 'Asistente de prueba', estado: 'CONFIRMADA' });
+  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Check-in', exact: true }).click();
+  await page.getByRole('heading', { name: 'Check-in digital' }).waitFor();
+  const eventInput = page.getByLabel('Identificador del evento', { exact: true });
+  const registrationInput = page.getByLabel('Identificador de inscripción', { exact: true });
+  const submitCheckin = page.getByRole('button', { name: 'Registrar ingreso', exact: true });
+  assert.equal(await submitCheckin.isEnabled(), false);
+  await eventInput.fill('evt_wrong');
+  await registrationInput.fill('ins_checkin');
+  await submitCheckin.click();
+  await page.getByRole('heading', { name: 'Ingreso rechazado' }).waitFor();
+  await page.getByRole('alert').filter({ hasText: 'La inscripción no corresponde al evento' }).waitFor();
+  assert.equal(registrations.at(-1).estado, 'CONFIRMADA');
+  await eventInput.fill(' evt_test_anime ');
+  checkinNetworkError = true;
+  await submitCheckin.click();
+  await page.getByRole('alert').filter({ hasText: 'No pudimos conectar' }).waitFor();
+  assert.equal(await page.getByRole('heading', { name: 'Ingreso registrado', exact: true }).count(), 0);
+  checkinNetworkError = false;
+  const beforeCheckin = actions.filter(action => action.endpoint === 'checkin').length;
+  await submitCheckin.dblclick();
+  await page.getByRole('heading', { name: 'Ingreso registrado', exact: true }).waitFor();
+  assert.equal(actions.filter(action => action.endpoint === 'checkin').length, beforeCheckin + 1);
+  assert.equal(actions.at(-1).evento_id, 'evt_test_anime');
+  assert.equal(actions.at(-1).session_token, session.session_token);
+  assert.equal(registrations.at(-1).estado, 'ASISTIO');
+  assert.equal(await submitCheckin.count(), 0);
+  await page.screenshot({ path: `${output}/checkin-desktop.png`, fullPage: true });
+  for (const width of [1440, 1024, 768, 390, 375, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Check-in desborda en ${width}px`);
+  }
+  await page.screenshot({ path: `${output}/checkin-mobile.png`, fullPage: true });
+  await page.getByRole('button', { name: 'Siguiente inscripción' }).click();
+  assert.equal(await registrationInput.inputValue(), '');
+  assert.ok(await registrationInput.evaluate(element => element === document.activeElement));
+  assert.equal(await eventInput.inputValue(), ' evt_test_anime ');
+  await registrationInput.fill('ins_checkin');
+  await submitCheckin.click();
+  await page.getByRole('heading', { name: 'Ingreso ya registrado' }).waitFor();
+  assert.equal(await page.getByRole('heading', { name: 'Ingreso registrado', exact: true }).count(), 0);
+  await page.getByRole('link', { name: 'Mis inscripciones', exact: true }).last().click();
+  await page.getByRole('button', { name: 'Asistidas', exact: true }).click();
+  await page.locator('.registration-card').getByText('Asistió', { exact: true }).waitFor();
+  assert.equal(await page.locator('.registration-card').count(), 1);
+  assert.equal(await page.getByRole('button', { name: 'Cancelar inscripción', exact: true }).count(), 0);
+  await page.locator('.registration-card').getByText('ins_checkin', { exact: true }).waitFor();
+  ok('WF11: rechazo, red, ingreso sin doble envío, duplicado, siguiente inscripción y estado ASISTIO; seis tamaños');
+
+  for (const path of ['/cuenta', '/inscripciones', '/vinculacion', '/checkin', '/eventos/evt_test_anime', '/asistente']) {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto(base + path);
     await page.locator('h1').waitFor();

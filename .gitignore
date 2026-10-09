@@ -8,3 +8,6 @@ dist/
 
 *.log
 .DS_Store
+
+# Exportaciones locales con datos personales y credenciales.
+/docs/EventPass/*.xlsx

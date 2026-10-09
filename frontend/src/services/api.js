@@ -3,10 +3,11 @@ export const baseUrl = (env.VITE_N8N_BASE_URL || 'https://zehrty.app.n8n.cloud')
 export const chatUrl = env.VITE_EVENTPASS_CHAT_URL || 'https://zehrty.app.n8n.cloud/webhook/5ebbcae5-e6e5-44d4-800a-77330877ba2b/chat';
 
 export class ApiError extends Error {
-  constructor(message, status = 0) {
+  constructor(message, status = 0, resultado) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.resultado = resultado;
   }
 }
 
@@ -37,7 +38,7 @@ export async function request(endpoint, payload = {}, { token, signal, timeout =
     }
     if (!response.ok || data.ok === false || data.success === false) {
       const message = [data.error, data.message, data.mensaje].find(value => typeof value === 'string');
-      throw new ApiError(message || `No se pudo completar la solicitud (${response.status}).`, response.status);
+      throw new ApiError(message || `No se pudo completar la solicitud (${response.status}).`, response.status, data.resultado);
     }
     if (data.ok !== true) throw new ApiError('El servicio no confirmó la operación. Revisa el estado antes de volver a intentarlo.', response.status);
     return data;
@@ -57,6 +58,16 @@ export const authRequest = (data, options) => request('auth', data, options);
 export const catalogoRequest = (data, options) => request('catalogo', data, options);
 export const vinculacionRequest = (data, options) => request('vinculacion/codigo', data, options);
 export const inscripcionesRequest = (data, options) => request('inscripciones', data, options);
+
+export async function checkinRequest(data, options) {
+  const result = await request('checkin', data, options);
+  if (result.resultado !== 'EXITOSO' || typeof result.checkin_id !== 'string' || !result.checkin_id.trim() ||
+      typeof result.fecha_checkin !== 'string' || !Number.isFinite(Date.parse(result.fecha_checkin)) ||
+      result.inscripcion_id !== data.inscripcion_id || result.evento_id !== data.evento_id) {
+    throw new ApiError('No pudimos confirmar el ingreso. Consulta el estado de la inscripción antes de repetirlo.');
+  }
+  return result;
+}
 
 export function requireList(data, key) {
   if (!Array.isArray(data[key])) throw new ApiError('La respuesta recibida no contiene el listado esperado.');

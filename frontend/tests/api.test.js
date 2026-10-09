@@ -1,6 +1,6 @@
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { ApiError, authRequest, catalogoRequest, inscripcionesRequest, request, requireList, requireObject, usuariosRequest, vinculacionRequest } from '../src/services/api.js';
+import { ApiError, authRequest, catalogoRequest, checkinRequest, inscripcionesRequest, request, requireList, requireObject, usuariosRequest, vinculacionRequest } from '../src/services/api.js';
 
 const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });
@@ -85,4 +85,37 @@ test('El contrato de listado distingue vacío válido de respuesta rota', () => 
 test('El contrato de detalle y perfil exige un objeto', () => {
   assert.deepEqual(requireObject({ evento: { nombre: 'Evento de prueba' } }, 'evento'), { nombre: 'Evento de prueba' });
   for (const value of [null, undefined, 'evento', []]) assert.throws(() => requireObject({ evento: value }, 'evento'), ApiError);
+});
+
+test('Check-in envía los identificadores y devuelve el comprobante confirmado', async () => {
+  const payload = { inscripcion_id: 'ins_test', evento_id: 'evt_test' };
+  const receipt = { ok: true, resultado: 'EXITOSO', ...payload, checkin_id: 'chk_test', fecha_checkin: '2026-10-09T19:00:00Z' };
+  globalThis.fetch = async (url, options) => {
+    assert.ok(url.endsWith('/webhook/eventpass/checkin'));
+    assert.equal(options.method, 'POST');
+    assert.deepEqual(JSON.parse(options.body), { ...payload, session_token: 'test-only-token' });
+    return Response.json(receipt);
+  };
+  assert.deepEqual(await checkinRequest(payload, { token: 'test-only-token' }), receipt);
+});
+
+test('Check-in conserva los resultados de duplicado y rechazo sin reintentos', async () => {
+  for (const [status, resultado] of [[409, 'DUPLICADO'], [400, 'RECHAZADO']]) {
+    let calls = 0;
+    globalThis.fetch = async () => {
+      calls += 1;
+      return Response.json({ ok: false, resultado, mensaje: 'Mensaje del check-in' }, { status });
+    };
+    await assert.rejects(checkinRequest({}), error => error.status === status && error.resultado === resultado && error.message === 'Mensaje del check-in');
+    assert.equal(calls, 1);
+  }
+});
+
+test('Check-in no confirma respuestas incompletas o de otra inscripción', async () => {
+  const payload = { inscripcion_id: 'ins_test', evento_id: 'evt_test' };
+  const receipt = { ok: true, resultado: 'EXITOSO', ...payload, checkin_id: 'chk_test', fecha_checkin: '2026-10-09T19:00:00Z' };
+  for (const invalid of [{ resultado: 'RECHAZADO' }, { checkin_id: '' }, { checkin_id: {} }, { fecha_checkin: '' }, { fecha_checkin: 'invalid' }, { inscripcion_id: 'otra' }, { evento_id: 'otro' }]) {
+    globalThis.fetch = async () => Response.json({ ...receipt, ...invalid });
+    await assert.rejects(checkinRequest(payload), /Consulta el estado/);
+  }
 });
