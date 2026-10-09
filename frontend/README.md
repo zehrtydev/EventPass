@@ -53,8 +53,8 @@ El entorno de pruebas necesita bibliotecas gráficas y fuentes de sistema inclus
 `.env.example` documenta las dos variables públicas. Los valores predeterminados permiten ejecutar el proyecto sin crear un archivo `.env`:
 
 ```dotenv
-VITE_N8N_BASE_URL=https://zehrty.app.n8n.cloud
-VITE_EVENTPASS_CHAT_URL=https://zehrty.app.n8n.cloud/webhook/5ebbcae5-e6e5-44d4-800a-77330877ba2b/chat
+VITE_N8N_BASE_URL=https://manuamado.app.n8n.cloud
+VITE_EVENTPASS_CHAT_URL=https://manuamado.app.n8n.cloud/webhook/5ebbcae5-e6e5-44d4-800a-77330877ba2b/chat
 ```
 
 Para cambiar de instancia, crea `frontend/.env.local` con los valores correspondientes. Reinicia Vite o vuelve a compilar. **Las variables `VITE_` son públicas: nunca contienen secretos.**

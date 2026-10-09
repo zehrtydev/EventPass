@@ -28,7 +28,7 @@ test('Los cinco clientes envían POST exclusivamente a los endpoints de n8n', as
   const clients = [[usuariosRequest, 'usuarios'], [authRequest, 'auth'], [catalogoRequest, 'catalogo'], [vinculacionRequest, 'vinculacion/codigo'], [inscripcionesRequest, 'inscripciones']];
   for (const [client, endpoint] of clients) {
     globalThis.fetch = async (url, options) => {
-      assert.equal(url, `https://zehrty.app.n8n.cloud/webhook/eventpass/${endpoint}`);
+      assert.equal(url, `https://manuamado.app.n8n.cloud/webhook/eventpass/${endpoint}`);
       assert.equal(options.method, 'POST');
       assert.equal(options.headers['Content-Type'], 'application/json');
       assert.equal(options.redirect, 'error');

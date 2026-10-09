@@ -1,6 +1,6 @@
 const env = import.meta.env ?? {};
-export const baseUrl = (env.VITE_N8N_BASE_URL || 'https://zehrty.app.n8n.cloud').replace(/\/$/, '');
-export const chatUrl = env.VITE_EVENTPASS_CHAT_URL || 'https://zehrty.app.n8n.cloud/webhook/5ebbcae5-e6e5-44d4-800a-77330877ba2b/chat';
+export const baseUrl = (env.VITE_N8N_BASE_URL || 'https://manuamado.app.n8n.cloud').replace(/\/$/, '');
+export const chatUrl = env.VITE_EVENTPASS_CHAT_URL || 'https://manuamado.app.n8n.cloud/webhook/5ebbcae5-e6e5-44d4-800a-77330877ba2b/chat';
 
 export class ApiError extends Error {
   constructor(message, status = 0, resultado) {
