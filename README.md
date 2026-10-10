@@ -9,7 +9,8 @@ El repositorio contiene el frontend web y las exportaciones de workflows de n8n 
 - `frontend/`: aplicación React 19 construida con Vite 8.
 - `n8n/`: workflows exportados para los procesos de EventPass.
 - `docs/`: contrato de API y documentación técnica.
-- `docs/EventPass/`: exportaciones locales de las hojas de datos utilizadas por los workflows.
+- `docs/EventPass-public/`: copias sanitizadas de las hojas de datos para revisión académica.
+- `docs/EventPass/`: exportaciones locales originales, excluidas de Git por contener datos sensibles.
 
 ## Requisitos
 
@@ -85,7 +86,9 @@ Requiere `inscripcion_id` y `evento_id`. Para un ingreso exitoso, la inscripció
 
 ## Datos de ejemplo
 
-Los archivos de `docs/EventPass/` son exportaciones de hojas utilizadas durante el desarrollo y pueden contener información personal, hashes o tokens de sesión. No los uses como mecanismo de distribución de credenciales ni compartas datos reales sin sanitizarlos previamente.
+Los archivos de `docs/EventPass-public/` conservan la estructura de las hojas utilizadas durante el desarrollo, pero reemplazan tokens, hashes, correos, teléfonos y nombres por valores ficticios. Son los archivos destinados a revisión académica.
+
+Los originales de `docs/EventPass/` se conservan solo localmente y no deben subirse al repositorio. No uses ninguna exportación como mecanismo de distribución de credenciales.
 
 ## Flujo Git
 

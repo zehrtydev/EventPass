@@ -10,3 +10,5 @@ dist/
 .DS_Store
 
 # Exportaciones locales con datos personales y credenciales.
+/docs/EventPass/*.xlsx
+!/docs/EventPass-public/
